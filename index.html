@@ -212,6 +212,7 @@
     .guide-progress-track { height: 13px; overflow: hidden; border-radius: 999px; background: #eadfce; }
     .guide-progress-fill { width: 0; height: 100%; border-radius: inherit; background: linear-gradient(90deg, #9ab48d, var(--green)); transition: width .3s ease; }
     .guide-step-card { width: min(620px, 100%); min-height: 160px; margin: 18px auto 0; padding: 22px; border-radius: 20px; background: #f7efe3; text-align: left; display: grid; grid-template-columns: 58px 1fr; gap: 16px; align-items: center; }
+    .guide-step-visual { display: none; width: 100%; height: 190px; overflow: hidden; border-radius: 14px; border: 2px solid rgba(102,138,91,.18); background-color: #fff; background-repeat: no-repeat; box-shadow: 0 8px 18px rgba(91,68,50,.10); }
     .guide-step-num { width: 58px; height: 58px; display: grid; place-items: center; border-radius: 50%; color: #fff; background: var(--green); font-size: 22px; font-weight: 800; }
     .guide-step-title { margin: 0; font-size: clamp(21px, 2.5vw, 30px); }
     .guide-step-text { margin: 8px 0 0; color: var(--muted); font-size: 16px; line-height: 1.7; }
@@ -267,13 +268,12 @@
       #scanScreen .card {
         display: grid;
         grid-template-columns: 300px minmax(320px, 1fr);
-        grid-template-rows: auto auto auto 1fr;
+        grid-template-rows: minmax(0, 1fr);
         column-gap: 26px;
         align-items: center;
       }
-      #scanScreen .mini-avatar { grid-row: 1 / -1; width: min(100%, 280px); height: auto; max-width: 280px; max-height: 100%; margin: 0 auto; align-self: end; }
-      #scanScreen .message-main, #scanScreen .message-sub, #scanScreen .progress-shell, #scanScreen .button-row,
-      #scanScreen .spinner, #scanScreen .success-mark { grid-column: 2; }
+      #scanScreen .mini-avatar { grid-column: 1; grid-row: 1; width: min(100%, 280px); height: auto; max-width: 280px; max-height: 100%; margin: 0 auto; align-self: center; }
+      .scan-content { grid-column: 2; grid-row: 1; min-width: 0; height: 100%; display: flex; flex-direction: column; align-items: center; justify-content: center; }
       #scanScreen .message-main { font-size: clamp(24px, 2.7vw, 38px); }
       #scanScreen .progress-shell { margin-top: 12px; }
       #scanScreen .button-row { margin-top: 10px; }
@@ -329,15 +329,22 @@
       #guideScreen .mini-avatar { width: min(100%, 350px); height: auto; max-width: 350px; max-height: 100%; align-self: end; }
       .guide-progress-head { margin-bottom: 8px; font-size: 16px; }
       .guide-progress-track { height: 14px; }
-      #guideStepCard { min-height: 190px; padding: 20px 22px; border-radius: 18px; grid-template-columns: 60px 1fr; gap: 18px; }
+      #guideStepCard { min-height: 230px; padding: 14px 16px; border-radius: 18px; grid-template-columns: 220px 60px minmax(0, 1fr); gap: 14px; }
+      .guide-step-visual { display: block; height: 205px; }
       .guide-step-num { width: 60px; height: 60px; font-size: 24px; }
       .guide-step-title { font-size: 29px; line-height: 1.3; }
       .guide-step-text { margin-top: 8px; font-size: 18px; line-height: 1.55; }
       #guideScreen .button-row { position: absolute; left: 12px; right: 12px; bottom: 8px; gap: 10px; }
       .btn { min-height: 48px; padding: 0 18px; border-radius: 13px; font-size: 16px; }
       .sound-btn { padding: 5px 8px; font-size: 10px; }
-      #scanScreen .card { grid-template-columns: 280px minmax(0, 1fr); column-gap: 22px; }
-      #scanScreen .mini-avatar { width: min(100%, 270px); height: auto; max-width: 270px; max-height: 100%; align-self: end; }
+      #scanScreen .card { grid-template-columns: minmax(300px, 36%) minmax(0, 64%); column-gap: 24px; padding: 16px 24px 12px; }
+      #scanScreen .mini-avatar { width: min(100%, 340px); height: auto; max-width: 340px; max-height: 96%; align-self: center; }
+      #scanScreen .message-main { font-size: 36px; line-height: 1.35; }
+      #scanScreen .message-sub { margin-top: 8px; font-size: 18px; }
+      #scanScreen .progress-shell { width: min(560px, 92%); margin-top: 18px; }
+      #scanScreen .progress-track { height: 20px; }
+      #scanScreen .progress-num { font-size: 34px; }
+      #scanScreen .button-row { margin-top: 18px; }
     }
 
     @media (prefers-reduced-motion: reduce) {
@@ -380,15 +387,17 @@
     <section id="scanScreen" class="screen">
       <div class="card">
         <img class="mini-avatar" src="assets/avatar-female-tablet.png" alt="女性の案内アバター">
-        <div id="spinner" class="spinner" aria-hidden="true"></div>
-        <div id="successMark" class="success-mark" aria-hidden="true">✓</div>
-        <h2 id="messageMain" class="message-main">会員証をスキャンしてください</h2>
-        <p id="messageSub" class="message-sub">右側のバーコードリーダーへかざしてください。</p>
-        <div id="progressShell" class="progress-shell">
-          <div class="progress-track"><div id="progressFill" class="progress-fill"></div></div>
-          <div id="progressNum" class="progress-num">0%</div>
+        <div class="scan-content">
+          <div id="spinner" class="spinner" aria-hidden="true"></div>
+          <div id="successMark" class="success-mark" aria-hidden="true">✓</div>
+          <h2 id="messageMain" class="message-main">会員証をスキャンしてください</h2>
+          <p id="messageSub" class="message-sub">右側のバーコードリーダーへかざしてください。</p>
+          <div id="progressShell" class="progress-shell">
+            <div class="progress-track"><div id="progressFill" class="progress-fill"></div></div>
+            <div id="progressNum" class="progress-num">0%</div>
+          </div>
+          <div class="button-row"><button id="scanBackBtn" class="btn light" type="button">最初の画面に戻る</button></div>
         </div>
-        <div class="button-row"><button id="scanBackBtn" class="btn light" type="button">最初の画面に戻る</button></div>
       </div>
     </section>
 
@@ -404,6 +413,7 @@
           <div class="guide-progress-track"><div id="guideProgressFill" class="guide-progress-fill"></div></div>
         </div>
         <article id="guideStepCard" class="guide-step-card" aria-live="polite">
+          <div id="guideStepVisual" class="guide-step-visual" role="img" aria-label="操作画面の見本"></div>
           <span id="guideStepNum" class="guide-step-num">1</span>
           <div>
             <h3 id="guideStepTitle" class="guide-step-title"></h3>
@@ -470,9 +480,9 @@
         avatar: 'assets/avatar-female-tablet.png',
         audio: 'memberHelp',
         steps: [
-          ['1', '公式LINEを開く', 'COMPASSION WORLDの公式LINEを開きます'],
-          ['2', '会員証をタップ', 'リッチメニューから会員証を表示します'],
-          ['3', 'バーコードをかざす', '画面を明るくして右側のリーダーへかざします']
+          ['1', '公式LINEを開く', 'トーク画面下部の「通行許可証」をタップします', { image: 'assets/guide-member-source.jpg', size: '380% auto', position: '15% 25%' }],
+          ['2', '会員証を表示', '通行許可証・住民登録証のバーコードを表示します', { image: 'assets/guide-member-source.jpg', size: '380% auto', position: '50% 25%' }],
+          ['3', 'バーコードをかざす', '画面を明るくして右側のリーダーへかざします', { image: 'assets/guide-member-source.jpg', size: '380% auto', position: '85% 25%' }]
         ]
       },
       first: {
@@ -481,17 +491,18 @@
         avatar: 'assets/avatar-male-tablet-v2.png',
         audio: 'firstVisit',
         steps: [
-          ['1', '公式LINEを友だち追加', '店頭の登録用QRコードを読み取ります'],
-          ['2', '必要事項を入力', '画面の案内に沿って会員情報を登録します'],
-          ['3', '会員証を表示', '登録完了後に表示される会員証を開きます'],
-          ['4', 'バーコードをスキャン', '右側のリーダーへかざすと入店できます']
+          ['1', '公式LINEを友だち追加', '画面のQRコードをスマートフォンで読み取ります', { image: 'assets/guide-first-source.jpg', size: '230% auto', position: '50% 42%' }],
+          ['2', '「同意する」をタップ', 'LINEミニアプリの確認画面で同意します', { image: 'assets/guide-first-source.jpg', size: '430% auto', position: '3% 82%' }],
+          ['3', '「許可する」をタップ', 'プロフィール情報の利用を許可します', { image: 'assets/guide-first-source.jpg', size: '430% auto', position: '33% 82%' }],
+          ['4', 'お客さま情報を入力', '画面の案内に沿って必要事項を入力します', { image: 'assets/guide-first-source.jpg', size: '430% auto', position: '66% 82%' }],
+          ['5', '会員証を表示', '登録完了後に「会員証を表示する」をタップします', { image: 'assets/guide-first-source.jpg', size: '430% auto', position: '97% 82%' }]
         ]
       }
     };
 
     function showScreen(id) {
       SCREENS.forEach(screenId => $(screenId).classList.toggle('active', screenId === id));
-      if (id !== 'guideScreen') stopAudio();
+      if (id === 'guideScreen') stopAudio();
       focusScanner();
     }
 
@@ -539,10 +550,10 @@
     }
 
     async function playGuide(key) {
-      stopAudio();
       if (!audioEnabled) return;
       const url = APP_CONFIG.audio[key];
       if (!url) return;
+      stopAudio();
       currentAudio = new Audio(url);
       currentAudio.preload = 'auto';
       currentAudio.volume = Math.min(1, APP_CONFIG.volume.guideBase * getMasterVolume());
@@ -582,6 +593,12 @@
       $('guideStepNum').textContent = step[0];
       $('guideStepTitle').textContent = step[1];
       $('guideStepText').textContent = step[2];
+      const visual = step[3];
+      const visualEl = $('guideStepVisual');
+      visualEl.style.backgroundImage = visual ? `url("${visual.image}")` : 'none';
+      visualEl.style.backgroundSize = visual ? visual.size : 'cover';
+      visualEl.style.backgroundPosition = visual ? visual.position : 'center';
+      visualEl.setAttribute('aria-label', visual ? `${step[1]}の操作画面` : '');
       $('guideProgressLabel').textContent = `ステップ ${guideStepIndex + 1} / ${total}`;
       $('guideProgressPercent').textContent = `${percent}%`;
       $('guideProgressFill').style.width = `${percent}%`;
