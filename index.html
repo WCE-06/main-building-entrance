@@ -412,7 +412,7 @@
         </article>
         <div class="button-row">
           <button id="guidePrevBtn" class="btn light" type="button">前へ戻る</button>
-          <button id="guideReplayBtn" class="btn light" type="button">音声をもう一度聞く</button>
+          <button id="guideReplayBtn" class="btn light" type="button" hidden>音声をもう一度聞く</button>
           <button id="guideNextBtn" class="btn" type="button">次へ</button>
           <button id="guideBackBtn" class="btn light" type="button">最初の画面に戻る</button>
         </div>
@@ -432,12 +432,16 @@
       pointGasUrl: 'https://script.google.com/macros/s/AKfycbwWdVJo6yC6RL3IjJcjueePaIpyo-H7Mh5TGUSqvYEMyZk3Lup8Hcf-JZgsXa-fQB85SA/exec',
       audio: {
         bgm: 'https://wce-06.github.io/liff-entry/audio/bgm.mp3',
-        welcome: 'https://wce-06.github.io/liff-entry/audio/entrance.mp3',
-        memberHelp: 'https://wce-06.github.io/liff-entry/audio/entrance.mp3',
-        firstVisit: 'https://wce-06.github.io/liff-entry/audio/entrance.mp3',
+        welcome: '',
+        memberHelp: '',
+        firstVisit: '',
         scanning: 'https://wce-06.github.io/liff-entry/audio/entrance.mp3',
-        success: 'https://wce-06.github.io/liff-entry/audio/entrance.mp3',
-        retry: 'https://wce-06.github.io/liff-entry/audio/entrance.mp3'
+        success: '',
+        retry: ''
+      },
+      volume: {
+        bgmBase: 0.42,
+        guideBase: 1.0
       },
       resetAfterSuccessMs: 20000,
       resetAfterErrorMs: 10000,
@@ -505,6 +509,23 @@
       return String(value || '').trim().replace(/[\r\n\s]+/g, '').toUpperCase();
     }
 
+    function getMasterVolume(date = new Date()) {
+      const hour = date.getHours();
+      if (hour < 2) return 0.30;
+      if (hour < 8) return 0.01;
+      if (hour < 9) return 0.75;
+      if (hour < 18) return 1.00;
+      if (hour < 21) return 0.75;
+      return 0.50;
+    }
+
+    function updateScheduledVolumes() {
+      const master = getMasterVolume();
+      if (bgmAudio) bgmAudio.volume = Math.min(1, APP_CONFIG.volume.bgmBase * master);
+      if (currentAudio) currentAudio.volume = Math.min(1, APP_CONFIG.volume.guideBase * master);
+      if (audioEnabled) $('soundBtn').textContent = `🔊 音声ON ${Math.round(master * 100)}%`;
+    }
+
     function stopAudio() {
       const stage = $('homeAvatarStage');
       const guideAvatar = $('guideAvatar');
@@ -524,6 +545,7 @@
       if (!url) return;
       currentAudio = new Audio(url);
       currentAudio.preload = 'auto';
+      currentAudio.volume = Math.min(1, APP_CONFIG.volume.guideBase * getMasterVolume());
       const stage = $('homeAvatarStage');
       const guideAvatar = $('guideAvatar');
       const setSpeaking = active => {
@@ -538,13 +560,12 @@
 
     async function enableAudio() {
       audioEnabled = true;
-      $('soundBtn').textContent = '🔊 音声案内 ON';
       if (!bgmAudio && APP_CONFIG.audio.bgm) {
         bgmAudio = new Audio(APP_CONFIG.audio.bgm);
         bgmAudio.loop = true;
         bgmAudio.preload = 'auto';
-        bgmAudio.volume = 0.16;
       }
+      updateScheduledVolumes();
       if (bgmAudio) {
         try { await bgmAudio.play(); } catch (_) {}
       }
@@ -751,6 +772,7 @@
     updateViewportHeight();
     window.addEventListener('resize', updateViewportHeight);
     window.addEventListener('orientationchange', updateViewportHeight);
+    setInterval(updateScheduledVolumes, 60000);
     window.addEventListener('load', () => { updateViewportHeight(); focusScanner(); });
     window.addEventListener('pageshow', () => { focusScanner(true); });
     document.addEventListener('visibilitychange', () => {
