@@ -6,6 +6,7 @@
   <title>COMPASSION WORLD 本館 チェックイン</title>
   <style>
     :root {
+      --viewport-height: 100vh;
       --cream: #f7f0e3;
       --cream-deep: #eadcc8;
       --panel: rgba(255, 253, 248, .95);
@@ -23,6 +24,7 @@
     body {
       height: 100vh;
       height: 100dvh;
+      height: var(--viewport-height);
       padding: 18px;
       color: var(--brown);
       background: radial-gradient(circle at 50% 0, #fffaf1 0, var(--cream) 58%, #ebdfcf 100%);
@@ -37,6 +39,7 @@
       width: min(1100px, 100%);
       height: calc(100vh - 36px);
       height: calc(100dvh - 36px);
+      height: calc(var(--viewport-height) - 36px);
       margin: 0 auto;
       padding: 22px;
       overflow: hidden;
@@ -234,6 +237,7 @@
         width: 100%;
         height: calc(100vh - 16px);
         height: calc(100dvh - 16px);
+        height: calc(var(--viewport-height) - 16px);
         min-height: 0;
         padding: 10px 18px 8px;
         border-radius: 22px;
@@ -320,7 +324,7 @@
       .choice strong { font-size: 24px; }
       .choice span { margin-top: 4px; font-size: 14px; }
       .card { padding: 8px 14px; border-radius: 18px; }
-      #guideScreen .card { grid-template-columns: minmax(300px, 37%) minmax(0, 63%); grid-template-rows: 54px minmax(0, 1fr) 58px; gap: 8px 20px; padding: 12px 18px; }
+      #guideScreen .card { position: relative; grid-template-columns: minmax(300px, 37%) minmax(0, 63%); grid-template-rows: 54px minmax(0, 1fr); gap: 8px 20px; padding: 12px 18px 70px; }
       #guideTitle { font-size: 31px; line-height: 1.25; }
       #guideScreen .mini-avatar { width: min(100%, 350px); height: auto; max-width: 350px; max-height: 100%; align-self: end; }
       .guide-progress-head { margin-bottom: 8px; font-size: 16px; }
@@ -329,11 +333,11 @@
       .guide-step-num { width: 60px; height: 60px; font-size: 24px; }
       .guide-step-title { font-size: 29px; line-height: 1.3; }
       .guide-step-text { margin-top: 8px; font-size: 18px; line-height: 1.55; }
-      #guideScreen .button-row { gap: 10px; }
+      #guideScreen .button-row { position: absolute; left: 12px; right: 12px; bottom: 8px; gap: 10px; }
       .btn { min-height: 48px; padding: 0 18px; border-radius: 13px; font-size: 16px; }
       .sound-btn { padding: 5px 8px; font-size: 10px; }
-      #scanScreen .card { grid-template-columns: 165px minmax(0, 1fr); column-gap: 16px; }
-      #scanScreen .mini-avatar { max-width: 160px; }
+      #scanScreen .card { grid-template-columns: 280px minmax(0, 1fr); column-gap: 22px; }
+      #scanScreen .mini-avatar { width: min(100%, 270px); height: auto; max-width: 270px; max-height: 100%; align-self: end; }
     }
 
     @media (prefers-reduced-motion: reduce) {
@@ -427,12 +431,13 @@
       workerUrl: 'https://script.google.com/macros/s/AKfycbx7NeJbl472i_GmHpid5E5sUqo-eyGwo9TZ1UhZ45qaoeTYlKCzl6qCl9CI_wnNSvNUew/exec',
       pointGasUrl: 'https://script.google.com/macros/s/AKfycbwWdVJo6yC6RL3IjJcjueePaIpyo-H7Mh5TGUSqvYEMyZk3Lup8Hcf-JZgsXa-fQB85SA/exec',
       audio: {
-        welcome: 'audio/welcome-female.mp3',
-        memberHelp: 'audio/member-help-female.mp3',
-        firstVisit: 'audio/first-visit-male.mp3',
-        scanning: 'audio/scanning-female.mp3',
-        success: 'audio/success-female.mp3',
-        retry: 'audio/retry-female.mp3'
+        bgm: 'https://wce-06.github.io/liff-entry/audio/bgm.mp3',
+        welcome: 'https://wce-06.github.io/liff-entry/audio/entrance.mp3',
+        memberHelp: 'https://wce-06.github.io/liff-entry/audio/entrance.mp3',
+        firstVisit: 'https://wce-06.github.io/liff-entry/audio/entrance.mp3',
+        scanning: 'https://wce-06.github.io/liff-entry/audio/entrance.mp3',
+        success: 'https://wce-06.github.io/liff-entry/audio/entrance.mp3',
+        retry: 'https://wce-06.github.io/liff-entry/audio/entrance.mp3'
       },
       resetAfterSuccessMs: 20000,
       resetAfterErrorMs: 10000,
@@ -445,6 +450,7 @@
     let isSubmitting = false;
     let audioEnabled = false;
     let currentAudio = null;
+    let bgmAudio = null;
     let progressStopper = null;
     let resetTimer = null;
     let scanInputTimer = null;
@@ -533,6 +539,15 @@
     async function enableAudio() {
       audioEnabled = true;
       $('soundBtn').textContent = '🔊 音声案内 ON';
+      if (!bgmAudio && APP_CONFIG.audio.bgm) {
+        bgmAudio = new Audio(APP_CONFIG.audio.bgm);
+        bgmAudio.loop = true;
+        bgmAudio.preload = 'auto';
+        bgmAudio.volume = 0.16;
+      }
+      if (bgmAudio) {
+        try { await bgmAudio.play(); } catch (_) {}
+      }
       await playGuide('welcome');
       focusScanner();
     }
@@ -730,7 +745,13 @@
     codeInput.addEventListener('keydown', event => {
       if (event.key === 'Enter') { event.preventDefault(); submitCode(codeInput.value); codeInput.value = ''; }
     });
-    window.addEventListener('load', () => { focusScanner(); });
+    function updateViewportHeight() {
+      document.documentElement.style.setProperty('--viewport-height', `${window.innerHeight}px`);
+    }
+    updateViewportHeight();
+    window.addEventListener('resize', updateViewportHeight);
+    window.addEventListener('orientationchange', updateViewportHeight);
+    window.addEventListener('load', () => { updateViewportHeight(); focusScanner(); });
     window.addEventListener('pageshow', () => { focusScanner(true); });
     document.addEventListener('visibilitychange', () => {
       if (!document.hidden) focusScanner(true);
