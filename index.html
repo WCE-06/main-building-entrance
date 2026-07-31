@@ -73,7 +73,8 @@
 
     .avatar-stage {
       width: min(100%, 420px);
-      height: 100%;
+      height: calc(100% - 92px);
+      margin-top: 92px;
       display: flex;
       align-items: flex-end;
       justify-content: center;
@@ -82,7 +83,8 @@
     }
 
     .avatar {
-      width: min(100%, 420px);
+      width: 100%;
+      height: 100%;
       max-height: 500px;
       object-fit: contain;
       object-position: center bottom;
@@ -245,8 +247,8 @@
         padding: 6px 0;
       }
       .avatar-panel { min-height: 0; height: 100%; border-radius: 20px; }
-      .avatar-stage { width: min(88%, 390px); }
-      .avatar { width: auto; max-width: 100%; height: 92%; max-height: none; }
+      .avatar-stage { width: min(88%, 390px); height: calc(100% - 72px); margin-top: 72px; }
+      .avatar { width: 100%; max-width: 100%; height: 100%; max-height: none; object-position: center center; }
       .speech { top: 10px; left: 10px; right: 10px; padding: 9px 12px; font-size: clamp(13px, 1.35vw, 18px); line-height: 1.45; }
       .home-actions { display: flex; flex-direction: column; gap: 10px; justify-content: center; }
       .lead { font-size: clamp(22px, 2.8vw, 38px); line-height: 1.25; }
@@ -301,8 +303,8 @@
       .brand h1 { font-size: 20px; }
       .brand p { font-size: 10px; }
       #homeScreen { grid-template-columns: minmax(240px, 34%) minmax(0, 66%); gap: 12px; padding: 4px 0; }
-      .avatar-stage { width: min(82%, 290px); }
-      .avatar { height: 88%; }
+      .avatar-stage { width: min(92%, 310px); height: calc(100% - 62px); margin-top: 62px; }
+      .avatar { width: 100%; height: 100%; object-fit: contain; object-position: center center; }
       .speech { top: 6px; left: 6px; right: 6px; padding: 7px 8px; font-size: 11px; line-height: 1.35; }
       .home-actions { gap: 6px; }
       .lead { font-size: 23px; }
@@ -442,6 +444,7 @@
     let currentAudio = null;
     let progressStopper = null;
     let resetTimer = null;
+    let scanInputTimer = null;
     let lastCode = '';
     let lastSubmittedAt = 0;
     let activeGuideType = '';
@@ -632,6 +635,7 @@
     function errorMessage(reason) {
       if (reason === 'customer_not_found') return ['会員情報を確認できませんでした', '会員登録または会員証の表示をご確認ください。'];
       if (reason === 'rank_not_allowed') return ['入店資格を確認できませんでした', '会員情報をご確認のうえ、もう一度お試しください。'];
+      if (reason === 'door_trigger_failed') return ['ドアの開錠に失敗しました', '通信状態を確認して、もう一度お試しください。'];
       if (['network_error', 'invalid_json', 'request_timeout'].includes(reason) || String(reason).startsWith('http_')) {
         return ['通信に失敗しました', '少し時間をあけて、もう一度お試しください。'];
       }
@@ -682,7 +686,8 @@
       const stop = startProgress();
 
       let result = await postJson(APP_CONFIG.workerUrl, { action: 'entry_check', customerCode });
-      if (result && result.ok) { stop(true); await new Promise(r => setTimeout(r, 250)); showSuccess(customerCode); return; }
+      if (result && result.ok && (!result.door || result.door.ok !== false)) { stop(true); await new Promise(r => setTimeout(r, 250)); showSuccess(customerCode); return; }
+      if (result && result.ok && result.door && result.door.ok === false) { showError('door_trigger_failed'); return; }
       if (!isCommunicationError(result)) { showError(result.reason || result.error); return; }
 
       $('progressShell').style.display = 'none';
@@ -691,7 +696,8 @@
       $('messageSub').textContent = 'そのまま少々お待ちください。';
       await new Promise(r => setTimeout(r, APP_CONFIG.networkRetryDelayMs));
       result = await postJson(APP_CONFIG.workerUrl, { action: 'entry_check', customerCode });
-      if (result && result.ok) showSuccess(customerCode);
+      if (result && result.ok && (!result.door || result.door.ok !== false)) showSuccess(customerCode);
+      else if (result && result.ok && result.door && result.door.ok === false) showError('door_trigger_failed');
       else showError(result && (result.reason || result.error));
     }
 
@@ -707,7 +713,17 @@
       submitCode(codeInput.value);
       codeInput.value = '';
     });
-    codeInput.addEventListener('input', () => { codeInput.value = normalizeCode(codeInput.value); });
+    codeInput.addEventListener('input', () => {
+      codeInput.value = normalizeCode(codeInput.value);
+      clearTimeout(scanInputTimer);
+      if (codeInput.value.length >= 3) {
+        scanInputTimer = setTimeout(() => {
+          const scannedCode = codeInput.value;
+          codeInput.value = '';
+          submitCode(scannedCode);
+        }, 180);
+      }
+    });
     codeInput.addEventListener('keydown', event => {
       if (event.key === 'Enter') { event.preventDefault(); submitCode(codeInput.value); codeInput.value = ''; }
     });
