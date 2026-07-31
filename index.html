@@ -1,0 +1,654 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no">
+  <title>COMPASSION WORLD 本館 チェックイン</title>
+  <style>
+    :root {
+      --cream: #f7f0e3;
+      --cream-deep: #eadcc8;
+      --panel: rgba(255, 253, 248, .95);
+      --brown: #5b4432;
+      --muted: #806e5e;
+      --green: #668a5b;
+      --green-dark: #4f7148;
+      --green-soft: #e7f0e2;
+      --error: #a85644;
+      --shadow: 0 22px 55px rgba(91, 68, 50, .14);
+    }
+
+    * { box-sizing: border-box; }
+    html, body { margin: 0; width: 100%; height: 100%; overflow: hidden; }
+    body {
+      height: 100dvh;
+      padding: 18px;
+      color: var(--brown);
+      background: radial-gradient(circle at 50% 0, #fffaf1 0, var(--cream) 58%, #ebdfcf 100%);
+      font-family: "Hiragino Sans", "Yu Gothic", "Noto Sans JP", system-ui, sans-serif;
+      overscroll-behavior: none;
+    }
+
+    button, input { font: inherit; }
+    button { -webkit-tap-highlight-color: transparent; }
+
+    .app {
+      width: min(1100px, 100%);
+      height: calc(100dvh - 36px);
+      margin: 0 auto;
+      padding: 22px;
+      overflow: hidden;
+      border: 1px solid rgba(121, 91, 62, .14);
+      border-radius: 30px;
+      background: var(--panel);
+      box-shadow: var(--shadow);
+      display: grid;
+      grid-template-rows: auto 1fr auto;
+    }
+
+    .brand { text-align: center; }
+    .brand h1 { margin: 0; font-size: clamp(23px, 3vw, 34px); letter-spacing: .08em; }
+    .brand p { margin: 6px 0 0; color: var(--muted); font-size: 14px; }
+
+    .screen { display: none; min-height: 0; }
+    .screen.active { display: grid; }
+
+    #homeScreen {
+      grid-template-columns: minmax(220px, .8fr) minmax(420px, 1.35fr);
+      gap: 24px;
+      align-items: stretch;
+      padding: 18px 0 8px;
+    }
+
+    .avatar-panel {
+      min-height: 510px;
+      position: relative;
+      overflow: hidden;
+      border-radius: 26px;
+      background: linear-gradient(180deg, rgba(234, 220, 200, .55), rgba(255,255,255,.1));
+      display: flex;
+      align-items: flex-end;
+      justify-content: center;
+    }
+
+    .avatar-stage {
+      width: min(100%, 420px);
+      height: 100%;
+      display: flex;
+      align-items: flex-end;
+      justify-content: center;
+      transform-origin: 50% 100%;
+      animation: avatarIdle 5.2s ease-in-out infinite;
+    }
+
+    .avatar {
+      width: min(100%, 420px);
+      max-height: 500px;
+      object-fit: contain;
+      object-position: center bottom;
+      filter: drop-shadow(0 14px 18px rgba(91,68,50,.13));
+      transform-origin: 50% 100%;
+    }
+
+    @keyframes avatarIdle {
+      0%, 100% { transform: translate3d(0, 0, 0) rotate(0deg) scale(1); }
+      28% { transform: translate3d(-2px, -5px, 0) rotate(-.35deg) scale(1.006); }
+      58% { transform: translate3d(2px, -2px, 0) rotate(.35deg) scale(1.002); }
+      78% { transform: translate3d(0, -6px, 0) rotate(0deg) scale(1.008); }
+    }
+    .avatar-stage.speaking { animation-duration: 2.7s; }
+    .avatar-stage.speaking .avatar { animation: speakingPulse .62s ease-in-out infinite alternate; }
+    @keyframes speakingPulse { to { transform: translateY(-1px) scale(1.003); filter: saturate(1.035); } }
+
+    .speech {
+      position: absolute;
+      top: 18px;
+      left: 18px;
+      right: 18px;
+      z-index: 2;
+      padding: 15px 17px;
+      border-radius: 18px;
+      background: rgba(255,255,255,.94);
+      box-shadow: 0 8px 24px rgba(91,68,50,.10);
+      font-size: clamp(15px, 1.7vw, 19px);
+      font-weight: 700;
+      line-height: 1.65;
+      text-align: center;
+      animation: speechFloat 3.4s ease-in-out infinite;
+    }
+    @keyframes speechFloat { 50% { transform: translateY(-2px); } }
+
+    .home-actions { display: flex; flex-direction: column; justify-content: center; gap: 16px; }
+    .lead { margin: 0 0 2px; text-align: center; font-size: clamp(22px, 3vw, 34px); line-height: 1.5; }
+    .lead-sub { margin: 0 0 10px; text-align: center; color: var(--muted); font-size: 16px; line-height: 1.7; }
+
+    .choice {
+      width: 100%;
+      min-height: 108px;
+      padding: 18px 22px;
+      border: 0;
+      border-radius: 22px;
+      cursor: pointer;
+      text-align: left;
+      color: #fff;
+      background: linear-gradient(180deg, #789b6d, var(--green));
+      box-shadow: 0 11px 25px rgba(82,116,73,.22);
+    }
+
+    .choice.secondary {
+      color: var(--brown);
+      border: 2px solid rgba(111, 83, 56, .14);
+      background: linear-gradient(180deg, #fff, #f4e9da);
+      box-shadow: 0 10px 24px rgba(91,68,50,.10);
+    }
+
+    .choice strong { display: block; font-size: clamp(22px, 2.5vw, 30px); }
+    .choice span { display: block; margin-top: 5px; font-size: 14px; opacity: .92; }
+
+    #scanScreen, #guideScreen { place-items: center; padding: 20px 0 8px; }
+    .card {
+      width: min(760px, 100%);
+      padding: clamp(20px, 4vw, 34px);
+      border: 1px solid rgba(111,83,56,.12);
+      border-radius: 26px;
+      background: rgba(255,255,255,.67);
+      text-align: center;
+    }
+
+    .mini-avatar { height: 165px; max-width: 210px; object-fit: contain; margin: -10px auto 4px; }
+    #guideAvatar {
+      transform-origin: 50% 100%;
+      animation: avatarIdle 5.2s ease-in-out infinite;
+      filter: drop-shadow(0 12px 16px rgba(91,68,50,.10));
+    }
+    #guideAvatar.speaking { animation: guideSpeaking 1.35s ease-in-out infinite alternate; }
+    @keyframes guideSpeaking {
+      0% { transform: translate3d(-1px, 0, 0) rotate(-.2deg) scale(1); }
+      100% { transform: translate3d(1px, -4px, 0) rotate(.2deg) scale(1.008); }
+    }
+    .message-main { margin: 0; white-space: pre-line; font-size: clamp(24px, 3.4vw, 34px); line-height: 1.55; }
+    .message-sub { min-height: 1.7em; margin: 10px 0 0; white-space: pre-line; color: var(--muted); line-height: 1.7; }
+    .error-note { color: var(--error); }
+
+    .progress-shell { width: min(460px, 100%); margin: 24px auto 0; }
+    .progress-track { height: 17px; overflow: hidden; border-radius: 999px; background: #eadfce; }
+    .progress-fill { width: 0; height: 100%; border-radius: inherit; background: linear-gradient(90deg, #9ab48d, var(--green)); transition: width .12s linear; }
+    .progress-num { margin-top: 9px; color: var(--green-dark); font-size: 27px; font-weight: 800; }
+
+    .success-mark { display: none; width: 76px; height: 76px; margin: 16px auto; border-radius: 50%; background: var(--green-soft); color: var(--green-dark); font-size: 48px; line-height: 76px; }
+    .spinner { display: none; width: 58px; height: 58px; margin: 18px auto; border: 6px solid #e4d8c7; border-top-color: var(--green); border-radius: 50%; animation: spin .85s linear infinite; }
+    @keyframes spin { to { transform: rotate(360deg); } }
+
+    .scanner-input { position: fixed; left: -10000px; width: 1px; height: 1px; opacity: 0; }
+    .button-row { display: flex; justify-content: center; gap: 12px; margin-top: 22px; flex-wrap: wrap; }
+    .btn { min-height: 54px; padding: 0 24px; border: 0; border-radius: 16px; color: #fff; background: var(--green); font-weight: 800; cursor: pointer; }
+    .btn.light { color: var(--brown); border: 1px solid rgba(91,68,50,.16); background: #fff; }
+    .btn:disabled { opacity: .38; cursor: default; }
+
+    .guide-progress { width: min(560px, 100%); margin: 18px auto 0; }
+    .guide-progress-head { display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px; color: var(--muted); font-size: 14px; font-weight: 700; }
+    .guide-progress-track { height: 13px; overflow: hidden; border-radius: 999px; background: #eadfce; }
+    .guide-progress-fill { width: 0; height: 100%; border-radius: inherit; background: linear-gradient(90deg, #9ab48d, var(--green)); transition: width .3s ease; }
+    .guide-step-card { width: min(620px, 100%); min-height: 160px; margin: 18px auto 0; padding: 22px; border-radius: 20px; background: #f7efe3; text-align: left; display: grid; grid-template-columns: 58px 1fr; gap: 16px; align-items: center; }
+    .guide-step-num { width: 58px; height: 58px; display: grid; place-items: center; border-radius: 50%; color: #fff; background: var(--green); font-size: 22px; font-weight: 800; }
+    .guide-step-title { margin: 0; font-size: clamp(21px, 2.5vw, 30px); }
+    .guide-step-text { margin: 8px 0 0; color: var(--muted); font-size: 16px; line-height: 1.7; }
+
+    .footer { display: flex; justify-content: center; align-items: center; gap: 12px; padding-top: 12px; color: var(--muted); font-size: 12px; }
+    .sound-btn { border: 1px solid rgba(91,68,50,.16); border-radius: 999px; padding: 8px 13px; background: #fff; color: var(--brown); cursor: pointer; }
+
+    @media (max-width: 760px) {
+      body { padding: 8px; }
+      .app { min-height: calc(100vh - 16px); padding: 16px; border-radius: 22px; }
+      #homeScreen { grid-template-columns: 1fr; gap: 14px; }
+      .avatar-panel { min-height: 285px; }
+      .avatar { max-height: 300px; }
+      .speech { font-size: 14px; padding: 10px 12px; }
+      .choice { min-height: 86px; }
+      .brand p { display: none; }
+    }
+
+    /* 横向きタブレット向け。ブラウザUIで縦幅が変わっても確実に適用する */
+    @media (orientation: landscape) and (min-width: 1000px) {
+      body { padding: 8px; }
+      .app {
+        width: 100%;
+        height: calc(100dvh - 16px);
+        min-height: 0;
+        padding: 10px 18px 8px;
+        border-radius: 22px;
+        position: relative;
+        grid-template-rows: 42px minmax(0, 1fr) 0;
+      }
+      .brand { display: flex; align-items: center; justify-content: center; gap: 16px; }
+      .brand h1 { font-size: clamp(20px, 2.1vw, 30px); }
+      .brand p { margin: 0; font-size: 12px; }
+      #homeScreen {
+        grid-template-columns: minmax(270px, 34%) minmax(520px, 66%);
+        gap: clamp(18px, 2.5vw, 40px);
+        min-height: 0;
+        padding: 6px 0;
+      }
+      .avatar-panel { min-height: 0; height: 100%; border-radius: 20px; }
+      .avatar-stage { width: min(88%, 390px); }
+      .avatar { width: auto; max-width: 100%; height: 92%; max-height: none; }
+      .speech { top: 10px; left: 10px; right: 10px; padding: 9px 12px; font-size: clamp(13px, 1.35vw, 18px); line-height: 1.45; }
+      .home-actions { display: flex; flex-direction: column; gap: 10px; justify-content: center; }
+      .lead { font-size: clamp(22px, 2.8vw, 38px); line-height: 1.25; }
+      .lead-sub { margin-bottom: 2px; font-size: clamp(13px, 1.25vw, 17px); }
+      .choice { height: auto; min-height: 96px; padding: 14px 20px; }
+      .choice strong { font-size: clamp(20px, 2vw, 28px); }
+      #scanScreen, #guideScreen { min-height: 0; padding: 6px 0; }
+      .card { width: min(1180px, 100%); height: 100%; max-height: 100%; padding: 12px 24px; overflow: hidden; }
+      #scanScreen .card {
+        display: grid;
+        grid-template-columns: 210px minmax(320px, 1fr);
+        grid-template-rows: auto auto auto 1fr;
+        column-gap: 26px;
+        align-items: center;
+      }
+      #scanScreen .mini-avatar { grid-row: 1 / -1; height: min(92%, 430px); max-width: 210px; margin: 0; align-self: end; }
+      #scanScreen .message-main, #scanScreen .message-sub, #scanScreen .progress-shell, #scanScreen .button-row,
+      #scanScreen .spinner, #scanScreen .success-mark { grid-column: 2; }
+      #scanScreen .message-main { font-size: clamp(24px, 2.7vw, 38px); }
+      #scanScreen .progress-shell { margin-top: 12px; }
+      #scanScreen .button-row { margin-top: 10px; }
+      #guideScreen .card {
+        display: grid;
+        grid-template-columns: minmax(280px, .72fr) minmax(520px, 1.38fr);
+        grid-template-rows: auto minmax(220px, 1fr) auto;
+        gap: 8px 28px;
+        align-items: center;
+        text-align: left;
+      }
+      #guideTitle { grid-column: 1; grid-row: 1; align-self: end; font-size: clamp(22px, 2.3vw, 34px); text-align: center; }
+      #guideScreen .mini-avatar { grid-column: 1; grid-row: 2; height: min(100%, 330px); max-width: 270px; margin: 0 auto; align-self: center; }
+      #guideProgress { grid-column: 2; grid-row: 1; width: 100%; margin: 0; align-self: end; }
+      #guideStepCard { grid-column: 2; grid-row: 2; width: 100%; min-height: 165px; margin: 0; padding: 18px 22px; align-self: center; }
+      #guideScreen .button-row { grid-column: 1 / 3; grid-row: 3; margin: 0; }
+      .btn { min-height: 44px; }
+      .footer {
+        position: absolute;
+        top: 9px;
+        right: 16px;
+        z-index: 5;
+        padding: 0;
+      }
+      .footer > span { display: none; }
+      .sound-btn { padding: 6px 11px; background: rgba(255,255,255,.92); }
+    }
+
+    @media (prefers-reduced-motion: reduce) {
+      .avatar-stage, .avatar-stage .avatar, #guideAvatar, .speech { animation: none !important; }
+    }
+  </style>
+</head>
+<body>
+  <main class="app">
+    <header class="brand">
+      <h1>COMPASSION WORLD</h1>
+      <p>本館 入店受付</p>
+    </header>
+
+    <section id="homeScreen" class="screen active">
+      <div class="avatar-panel" aria-label="案内アバター">
+        <div id="homeSpeech" class="speech">いらっしゃいませ。<br>会員の方は会員証を提示してください。</div>
+        <div id="homeAvatarStage" class="avatar-stage">
+          <img class="avatar female" src="assets/avatar-female.png" alt="女性の案内アバター">
+        </div>
+      </div>
+      <div class="home-actions">
+        <h2 class="lead">ご来店ありがとうございます</h2>
+        <p class="lead-sub">会員証のバーコードは、右側のリーダーへかざしてください。</p>
+        <button id="memberHelpBtn" class="choice secondary" type="button">
+          <strong>会員証の表示方法</strong>
+          <span>会員証を開く手順を確認します</span>
+        </button>
+        <button id="firstVisitBtn" class="choice" type="button">
+          <strong>初めての方はこちら</strong>
+          <span>会員登録の手順をご案内します</span>
+        </button>
+      </div>
+    </section>
+
+    <section id="scanScreen" class="screen">
+      <div class="card">
+        <img class="mini-avatar" src="assets/avatar-female.png" alt="女性の案内アバター">
+        <div id="spinner" class="spinner" aria-hidden="true"></div>
+        <div id="successMark" class="success-mark" aria-hidden="true">✓</div>
+        <h2 id="messageMain" class="message-main">会員証をスキャンしてください</h2>
+        <p id="messageSub" class="message-sub">右側のバーコードリーダーへかざしてください。</p>
+        <div id="progressShell" class="progress-shell">
+          <div class="progress-track"><div id="progressFill" class="progress-fill"></div></div>
+          <div id="progressNum" class="progress-num">0%</div>
+        </div>
+        <div class="button-row"><button id="scanBackBtn" class="btn light" type="button">最初の画面に戻る</button></div>
+      </div>
+    </section>
+
+    <section id="guideScreen" class="screen">
+      <div class="card">
+        <img id="guideAvatar" class="mini-avatar" src="assets/avatar-female.png" alt="案内アバター">
+        <h2 id="guideTitle" class="message-main"></h2>
+        <div id="guideProgress" class="guide-progress" aria-label="案内の進捗">
+          <div class="guide-progress-head">
+            <span id="guideProgressLabel">ステップ 1 / 3</span>
+            <span id="guideProgressPercent">33%</span>
+          </div>
+          <div class="guide-progress-track"><div id="guideProgressFill" class="guide-progress-fill"></div></div>
+        </div>
+        <article id="guideStepCard" class="guide-step-card" aria-live="polite">
+          <span id="guideStepNum" class="guide-step-num">1</span>
+          <div>
+            <h3 id="guideStepTitle" class="guide-step-title"></h3>
+            <p id="guideStepText" class="guide-step-text"></p>
+          </div>
+        </article>
+        <div class="button-row">
+          <button id="guidePrevBtn" class="btn light" type="button">前へ戻る</button>
+          <button id="guideReplayBtn" class="btn light" type="button">音声をもう一度聞く</button>
+          <button id="guideNextBtn" class="btn" type="button">次へ</button>
+          <button id="guideBackBtn" class="btn light" type="button">最初の画面に戻る</button>
+        </div>
+      </div>
+    </section>
+
+    <input id="codeInput" class="scanner-input" type="text" autocomplete="off" autocapitalize="characters" spellcheck="false" aria-label="バーコード入力">
+
+    <footer class="footer">
+      <span>音声と字幕でご案内します</span>
+      <button id="soundBtn" class="sound-btn" type="button">🔊 音声を有効にする</button>
+    </footer>
+  </main>
+
+  <script>
+    /* URLを書き換えるだけで音声・アバターを交換できます。空文字なら音声は再生しません。 */
+    const APP_CONFIG = {
+      workerUrl: 'https://script.google.com/macros/s/AKfycbx7NeJbl472i_GmHpid5E5sUqo-eyGwo9TZ1UhZ45qaoeTYlKCzl6qCl9CI_wnNSvNUew/exec',
+      pointGasUrl: 'https://script.google.com/macros/s/AKfycbwWdVJo6yC6RL3IjJcjueePaIpyo-H7Mh5TGUSqvYEMyZk3Lup8Hcf-JZgsXa-fQB85SA/exec',
+      audio: {
+        welcome: 'audio/welcome-female.mp3',
+        memberHelp: 'audio/member-help-female.mp3',
+        firstVisit: 'audio/first-visit-male.mp3',
+        scanning: 'audio/scanning-female.mp3',
+        success: 'audio/success-female.mp3',
+        retry: 'audio/retry-female.mp3'
+      },
+      resetAfterSuccessMs: 20000,
+      resetAfterErrorMs: 10000,
+      networkRetryDelayMs: 1000
+    };
+
+    const SCREENS = ['homeScreen', 'scanScreen', 'guideScreen'];
+    const $ = id => document.getElementById(id);
+    const codeInput = $('codeInput');
+    let isSubmitting = false;
+    let audioEnabled = false;
+    let currentAudio = null;
+    let progressStopper = null;
+    let resetTimer = null;
+    let lastCode = '';
+    let lastSubmittedAt = 0;
+    let activeGuideType = '';
+    let guideStepIndex = 0;
+
+    const GUIDES = {
+      member: {
+        title: '会員証の表示方法',
+        text: 'スマートフォンで会員証を開き、表示されたバーコードを右側のリーダーへかざしてください。',
+        avatar: 'assets/avatar-female.png',
+        audio: 'memberHelp',
+        steps: [
+          ['1', '公式LINEを開く', 'COMPASSION WORLDの公式LINEを開きます'],
+          ['2', '会員証をタップ', 'リッチメニューから会員証を表示します'],
+          ['3', 'バーコードをかざす', '画面を明るくして右側のリーダーへかざします']
+        ]
+      },
+      first: {
+        title: '初めてご利用の方へ',
+        text: '会員登録はスマートフォンから行えます。登録完了後、会員証を表示してください。',
+        avatar: 'assets/avatar-male.png',
+        audio: 'firstVisit',
+        steps: [
+          ['1', '公式LINEを友だち追加', '店頭の登録用QRコードを読み取ります'],
+          ['2', '必要事項を入力', '画面の案内に沿って会員情報を登録します'],
+          ['3', '会員証を表示', '登録完了後に表示される会員証を開きます'],
+          ['4', 'バーコードをスキャン', '右側のリーダーへかざすと入店できます']
+        ]
+      }
+    };
+
+    function showScreen(id) {
+      SCREENS.forEach(screenId => $(screenId).classList.toggle('active', screenId === id));
+      if (id !== 'guideScreen') stopAudio();
+      focusScanner();
+    }
+
+    function focusScanner() {
+      setTimeout(() => { try { codeInput.focus({ preventScroll: true }); } catch (_) { codeInput.focus(); } }, 0);
+    }
+
+    function normalizeCode(value) {
+      return String(value || '').trim().replace(/[\r\n\s]+/g, '').toUpperCase();
+    }
+
+    function stopAudio() {
+      const stage = $('homeAvatarStage');
+      const guideAvatar = $('guideAvatar');
+      if (stage) stage.classList.remove('speaking');
+      if (guideAvatar) guideAvatar.classList.remove('speaking');
+      if (currentAudio) {
+        currentAudio.pause();
+        currentAudio.currentTime = 0;
+        currentAudio = null;
+      }
+    }
+
+    async function playGuide(key) {
+      stopAudio();
+      if (!audioEnabled) return;
+      const url = APP_CONFIG.audio[key];
+      if (!url) return;
+      currentAudio = new Audio(url);
+      currentAudio.preload = 'auto';
+      const stage = $('homeAvatarStage');
+      const guideAvatar = $('guideAvatar');
+      const setSpeaking = active => {
+        if (stage) stage.classList.toggle('speaking', active);
+        if (guideAvatar) guideAvatar.classList.toggle('speaking', active);
+      };
+      currentAudio.addEventListener('play', () => setSpeaking(true));
+      currentAudio.addEventListener('ended', () => setSpeaking(false));
+      currentAudio.addEventListener('pause', () => setSpeaking(false));
+      try { await currentAudio.play(); } catch (_) { setSpeaking(false); }
+    }
+
+    async function enableAudio() {
+      audioEnabled = true;
+      $('soundBtn').textContent = '🔊 音声案内 ON';
+      await playGuide('welcome');
+      focusScanner();
+    }
+
+    function renderGuideStep() {
+      const guide = GUIDES[activeGuideType];
+      if (!guide) return;
+      const step = guide.steps[guideStepIndex];
+      const total = guide.steps.length;
+      const percent = Math.round(((guideStepIndex + 1) / total) * 100);
+      $('guideStepNum').textContent = step[0];
+      $('guideStepTitle').textContent = step[1];
+      $('guideStepText').textContent = step[2];
+      $('guideProgressLabel').textContent = `ステップ ${guideStepIndex + 1} / ${total}`;
+      $('guideProgressPercent').textContent = `${percent}%`;
+      $('guideProgressFill').style.width = `${percent}%`;
+      $('guidePrevBtn').disabled = guideStepIndex === 0;
+      $('guideNextBtn').textContent = guideStepIndex === total - 1 ? '案内を終了' : '次へ';
+    }
+
+    function openGuide(type) {
+      const guide = GUIDES[type];
+      activeGuideType = type;
+      guideStepIndex = 0;
+      $('guideTitle').textContent = guide.title;
+      $('guideAvatar').src = guide.avatar;
+      $('guideReplayBtn').dataset.audioKey = guide.audio;
+      renderGuideStep();
+      showScreen('guideScreen');
+      playGuide(guide.audio);
+    }
+
+    function moveGuideStep(delta) {
+      const guide = GUIDES[activeGuideType];
+      if (!guide) return;
+      const nextIndex = guideStepIndex + delta;
+      if (nextIndex >= guide.steps.length) {
+        resetHome();
+        return;
+      }
+      guideStepIndex = Math.max(0, nextIndex);
+      renderGuideStep();
+    }
+
+    function startProgress() {
+      if (progressStopper) progressStopper(false);
+      let percent = 0;
+      $('progressShell').style.display = '';
+      $('progressFill').style.width = '0%';
+      $('progressNum').textContent = '0%';
+      const timer = setInterval(() => {
+        percent = Math.min(percent + 4, 96);
+        $('progressFill').style.width = `${percent}%`;
+        $('progressNum').textContent = `${percent}%`;
+      }, 80);
+      progressStopper = complete => {
+        clearInterval(timer);
+        $('progressFill').style.width = complete ? '100%' : '0%';
+        $('progressNum').textContent = complete ? '100%' : '0%';
+      };
+      return progressStopper;
+    }
+
+    function resetHome() {
+      clearTimeout(resetTimer);
+      if (progressStopper) progressStopper(false);
+      progressStopper = null;
+      isSubmitting = false;
+      codeInput.value = '';
+      $('spinner').style.display = 'none';
+      $('successMark').style.display = 'none';
+      $('messageMain').textContent = '会員証をスキャンしてください';
+      $('messageSub').textContent = '右側のバーコードリーダーへかざしてください。';
+      $('messageSub').classList.remove('error-note');
+      showScreen('homeScreen');
+    }
+
+    function scheduleReset(ms) {
+      clearTimeout(resetTimer);
+      resetTimer = setTimeout(resetHome, ms);
+    }
+
+    async function postJson(url, body) {
+      try {
+        const response = await fetch(url, {
+          method: 'POST',
+          headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+          body: JSON.stringify(body)
+        });
+        if (!response.ok) return { ok: false, error: `http_${response.status}` };
+        try { return await response.json(); } catch (_) { return { ok: false, error: 'invalid_json' }; }
+      } catch (error) {
+        return { ok: false, error: 'network_error', detail: String(error && error.message || error) };
+      }
+    }
+
+    function isCommunicationError(result) {
+      const error = String(result && result.error || '');
+      return !result || ['network_error', 'invalid_json', 'request_timeout'].includes(error) || error.startsWith('http_');
+    }
+
+    function errorMessage(reason) {
+      if (reason === 'customer_not_found') return ['会員情報を確認できませんでした', '会員登録または会員証の表示をご確認ください。'];
+      if (reason === 'rank_not_allowed') return ['入店資格を確認できませんでした', '会員情報をご確認のうえ、もう一度お試しください。'];
+      if (['network_error', 'invalid_json', 'request_timeout'].includes(reason) || String(reason).startsWith('http_')) {
+        return ['通信に失敗しました', '少し時間をあけて、もう一度お試しください。'];
+      }
+      return ['うまく読み取れませんでした', '画面を明るくし、バーコードをリーダーへまっすぐかざしてください。'];
+    }
+
+    function showError(reason) {
+      if (progressStopper) progressStopper(false);
+      progressStopper = null;
+      $('spinner').style.display = 'none';
+      $('successMark').style.display = 'none';
+      $('progressShell').style.display = '';
+      const [main, sub] = errorMessage(reason || 'unknown');
+      $('messageMain').textContent = main;
+      $('messageSub').textContent = sub;
+      $('messageSub').classList.add('error-note');
+      playGuide('retry');
+      scheduleReset(APP_CONFIG.resetAfterErrorMs);
+    }
+
+    function showSuccess(customerCode) {
+      if (progressStopper) progressStopper(true);
+      progressStopper = null;
+      $('progressShell').style.display = 'none';
+      $('spinner').style.display = 'none';
+      $('successMark').style.display = 'block';
+      $('messageMain').textContent = 'ゲートが開きます';
+      $('messageSub').textContent = 'お足元に気をつけてお進みください。';
+      $('messageSub').classList.remove('error-note');
+      playGuide('success');
+      postJson(APP_CONFIG.pointGasUrl, { action: 'checkin_point', customerCode, source: 'door_html' }).catch(() => {});
+      scheduleReset(APP_CONFIG.resetAfterSuccessMs);
+    }
+
+    async function submitCode(raw) {
+      const customerCode = normalizeCode(raw);
+      if (!customerCode || isSubmitting) return;
+      const now = Date.now();
+      if (customerCode === lastCode && now - lastSubmittedAt < 2000) return;
+      lastCode = customerCode;
+      lastSubmittedAt = now;
+      isSubmitting = true;
+      showScreen('scanScreen');
+      $('messageMain').textContent = 'お客さま情報を照会しています';
+      $('messageSub').textContent = '確認が完了するとゲートが自動で開きます。';
+      $('messageSub').classList.remove('error-note');
+      playGuide('scanning');
+      const stop = startProgress();
+
+      let result = await postJson(APP_CONFIG.workerUrl, { action: 'entry_check', customerCode });
+      if (result && result.ok) { stop(true); await new Promise(r => setTimeout(r, 250)); showSuccess(customerCode); return; }
+      if (!isCommunicationError(result)) { showError(result.reason || result.error); return; }
+
+      $('progressShell').style.display = 'none';
+      $('spinner').style.display = 'block';
+      $('messageMain').textContent = '通信を再確認しています';
+      $('messageSub').textContent = 'そのまま少々お待ちください。';
+      await new Promise(r => setTimeout(r, APP_CONFIG.networkRetryDelayMs));
+      result = await postJson(APP_CONFIG.workerUrl, { action: 'entry_check', customerCode });
+      if (result && result.ok) showSuccess(customerCode);
+      else showError(result && (result.reason || result.error));
+    }
+
+    $('memberHelpBtn').addEventListener('click', () => openGuide('member'));
+    $('firstVisitBtn').addEventListener('click', () => openGuide('first'));
+    $('guidePrevBtn').addEventListener('click', () => moveGuideStep(-1));
+    $('guideNextBtn').addEventListener('click', () => moveGuideStep(1));
+    $('guideReplayBtn').addEventListener('click', e => playGuide(e.currentTarget.dataset.audioKey));
+    $('guideBackBtn').addEventListener('click', resetHome);
+    $('scanBackBtn').addEventListener('click', resetHome);
+    $('soundBtn').addEventListener('click', enableAudio);
+    codeInput.addEventListener('input', () => { codeInput.value = normalizeCode(codeInput.value); });
+    codeInput.addEventListener('keydown', event => {
+      if (event.key === 'Enter') { event.preventDefault(); submitCode(codeInput.value); codeInput.value = ''; }
+    });
+    window.addEventListener('load', () => { focusScanner(); });
+    window.addEventListener('click', event => {
+      if (!['BUTTON', 'INPUT'].includes(event.target.tagName)) focusScanner();
+    });
+  </script>
+</body>
+</html>
