@@ -472,6 +472,8 @@
     let progressStopper = null;
     let resetTimer = null;
     let scanInputTimer = null;
+    let guideScanTimer = null;
+    let guideScanBuffer = '';
     let lastCode = '';
     let lastSubmittedAt = 0;
     let activeGuideType = '';
@@ -484,9 +486,9 @@
         avatar: 'assets/avatar-female-tablet.png',
         audio: 'memberHelp',
         steps: [
-          ['1', '公式LINEを開く', 'トーク画面下部の「通行許可証」をタップします', { image: 'assets/guide-member-source.jpg', size: '380% auto', position: '15% 25%' }],
-          ['2', '会員証を表示', '通行許可証・住民登録証のバーコードを表示します', { image: 'assets/guide-member-source.jpg', size: '380% auto', position: '50% 25%' }],
-          ['3', 'バーコードをかざす', '画面を明るくして右側のリーダーへかざします', { image: 'assets/guide-member-source.jpg', size: '380% auto', position: '85% 25%' }]
+          ['1', '公式LINEを開く', 'トーク画面下部の「通行許可証」をタップします', { image: 'assets/guide-member-1.jpg', size: 'contain', position: 'center' }],
+          ['2', '会員証を表示', '通行許可証・住民登録証のバーコードを表示します', { image: 'assets/guide-member-2.jpg', size: 'contain', position: 'center' }],
+          ['3', 'バーコードをかざす', 'この画面のまま、右側のリーダーへかざしてください。読み取り後、自動で認証を開始します', { image: 'assets/guide-member-3.jpg', size: 'contain', position: 'center' }]
         ]
       },
       first: {
@@ -495,11 +497,11 @@
         avatar: 'assets/avatar-male-tablet-v2.png',
         audio: 'firstVisit',
         steps: [
-          ['1', '公式LINEを友だち追加', '画面のQRコードをスマートフォンで読み取ります', { image: 'assets/guide-first-source.jpg', size: '230% auto', position: '50% 42%' }],
-          ['2', '「同意する」をタップ', 'LINEミニアプリの確認画面で同意します', { image: 'assets/guide-first-source.jpg', size: '430% auto', position: '3% 82%' }],
-          ['3', '「許可する」をタップ', 'プロフィール情報の利用を許可します', { image: 'assets/guide-first-source.jpg', size: '430% auto', position: '33% 82%' }],
-          ['4', 'お客さま情報を入力', '画面の案内に沿って必要事項を入力します', { image: 'assets/guide-first-source.jpg', size: '430% auto', position: '66% 82%' }],
-          ['5', '会員証を表示', '登録完了後に「会員証を表示する」をタップします', { image: 'assets/guide-first-source.jpg', size: '430% auto', position: '97% 82%' }]
+          ['1', '公式LINEを友だち追加', '画面のQRコードをスマートフォンで読み取ります', { image: 'assets/guide-first-1.jpg', size: 'contain', position: 'center' }],
+          ['2', '「同意する」をタップ', 'LINEミニアプリの確認画面で同意します', { image: 'assets/guide-first-2.jpg', size: 'contain', position: 'center' }],
+          ['3', '「許可する」をタップ', 'プロフィール情報の利用を許可します', { image: 'assets/guide-first-3.jpg', size: 'contain', position: 'center' }],
+          ['4', 'お客さま情報を入力', '画面の案内に沿って必要事項を入力します', { image: 'assets/guide-first-4.jpg', size: 'contain', position: 'center' }],
+          ['5', '会員証を表示', '登録完了後に「会員証を表示する」をタップします', { image: 'assets/guide-first-5.jpg', size: 'contain', position: 'center' }]
         ]
       }
     };
@@ -787,6 +789,34 @@
     codeInput.addEventListener('keydown', event => {
       if (event.key === 'Enter') { event.preventDefault(); submitCode(codeInput.value); codeInput.value = ''; }
     });
+    function isMemberScanStep() {
+      return $('guideScreen').classList.contains('active') &&
+        activeGuideType === 'member' &&
+        guideStepIndex === GUIDES.member.steps.length - 1;
+    }
+    function finishGuideScan() {
+      clearTimeout(guideScanTimer);
+      const scannedCode = normalizeCode(guideScanBuffer);
+      guideScanBuffer = '';
+      if (scannedCode.length < 3) return;
+      codeInput.value = scannedCode;
+      submitCode(scannedCode);
+    }
+    document.addEventListener('keydown', event => {
+      if (!isMemberScanStep() || event.ctrlKey || event.metaKey || event.altKey) return;
+      if (event.key === 'Enter') {
+        event.preventDefault();
+        event.stopPropagation();
+        finishGuideScan();
+        return;
+      }
+      if (event.key.length !== 1) return;
+      event.preventDefault();
+      event.stopPropagation();
+      guideScanBuffer += event.key;
+      clearTimeout(guideScanTimer);
+      guideScanTimer = setTimeout(finishGuideScan, 180);
+    }, true);
     function updateViewportHeight() {
       document.documentElement.style.setProperty('--viewport-height', `${window.innerHeight}px`);
     }
