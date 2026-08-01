@@ -456,9 +456,12 @@
         retry: ''
       },
       volume: {
-        bgmBase: 0.42,
+        bgmBase: 0.62,
+        welcomeBase: 0.55,
         guideBase: 1.0
       },
+      welcomeRepeatDelayMs: 10000,
+      entryRequestDelayMs: 2000,
       resetAfterSuccessMs: 20000,
       resetAfterErrorMs: 10000,
       networkRetryDelayMs: 1000
@@ -470,7 +473,9 @@
     let isSubmitting = false;
     let audioEnabled = false;
     let currentAudio = null;
+    let currentAudioBase = 1;
     let bgmAudio = null;
+    let welcomeTimer = null;
     let progressStopper = null;
     let resetTimer = null;
     let scanInputTimer = null;
@@ -541,11 +546,13 @@
     function updateScheduledVolumes() {
       const master = getMasterVolume();
       if (bgmAudio) bgmAudio.volume = Math.min(1, APP_CONFIG.volume.bgmBase * master);
-      if (currentAudio) currentAudio.volume = Math.min(1, APP_CONFIG.volume.guideBase * master);
+      if (currentAudio) currentAudio.volume = Math.min(1, currentAudioBase * master);
       if (audioEnabled) $('soundBtn').textContent = `🔊 音声ON ${Math.round(master * 100)}%`;
     }
 
     function stopAudio() {
+      clearTimeout(welcomeTimer);
+      welcomeTimer = null;
       const stage = $('homeAvatarStage');
       const guideAvatar = $('guideAvatar');
       if (stage) stage.classList.remove('speaking');
@@ -564,7 +571,8 @@
       stopAudio();
       currentAudio = new Audio(url);
       currentAudio.preload = 'auto';
-      currentAudio.volume = Math.min(1, APP_CONFIG.volume.guideBase * getMasterVolume());
+      currentAudioBase = key === 'welcome' ? APP_CONFIG.volume.welcomeBase : APP_CONFIG.volume.guideBase;
+      currentAudio.volume = Math.min(1, currentAudioBase * getMasterVolume());
       const stage = $('homeAvatarStage');
       const guideAvatar = $('guideAvatar');
       const setSpeaking = active => {
@@ -572,9 +580,24 @@
         if (guideAvatar) guideAvatar.classList.toggle('speaking', active);
       };
       currentAudio.addEventListener('play', () => setSpeaking(true));
-      currentAudio.addEventListener('ended', () => setSpeaking(false));
+      currentAudio.addEventListener('ended', () => {
+        setSpeaking(false);
+        currentAudio = null;
+        if (key === 'welcome' && $('homeScreen').classList.contains('active')) {
+          scheduleWelcome(APP_CONFIG.welcomeRepeatDelayMs);
+        }
+      });
       currentAudio.addEventListener('pause', () => setSpeaking(false));
       try { await currentAudio.play(); } catch (_) { setSpeaking(false); }
+    }
+
+    function scheduleWelcome(delay = APP_CONFIG.welcomeRepeatDelayMs) {
+      clearTimeout(welcomeTimer);
+      welcomeTimer = null;
+      if (!audioEnabled || !$('homeScreen').classList.contains('active')) return;
+      welcomeTimer = setTimeout(() => {
+        if ($('homeScreen').classList.contains('active')) playGuide('welcome');
+      }, delay);
     }
 
     async function enableAudio() {
@@ -646,7 +669,7 @@
       $('progressFill').style.width = '0%';
       $('progressNum').textContent = '0%';
       const timer = setInterval(() => {
-        percent = Math.min(percent + 4, 96);
+        percent = Math.min(percent + 1, 90);
         $('progressFill').style.width = `${percent}%`;
         $('progressNum').textContent = `${percent}%`;
       }, 80);
@@ -670,6 +693,7 @@
       $('messageSub').textContent = '右側のバーコードリーダーへかざしてください。';
       $('messageSub').classList.remove('error-note');
       showScreen('homeScreen');
+      scheduleWelcome();
       setTimeout(() => focusScanner(true), 80);
     }
 
@@ -748,22 +772,18 @@
       $('messageSub').textContent = '確認が完了するとゲートが自動で開きます。';
       $('messageSub').classList.remove('error-note');
       playGuide('scanning');
-      const stop = startProgress();
+      startProgress();
+
+      await new Promise(r => setTimeout(r, APP_CONFIG.entryRequestDelayMs));
 
       let result = await postJson(APP_CONFIG.workerUrl, { action: 'entry_check', customerCode });
-      if (result && result.ok && (!result.door || result.door.ok !== false)) { stop(true); await new Promise(r => setTimeout(r, 250)); showSuccess(customerCode); return; }
-      if (result && result.ok && result.door && result.door.ok === false) { showError('door_trigger_failed'); return; }
+      if (result && result.ok) { showSuccess(customerCode); return; }
+      if (result && result.isMember && result.reason === 'door_trigger_failed') { showSuccess(customerCode); return; }
       if (!isCommunicationError(result)) { showError(result.reason || result.error); return; }
 
-      $('progressShell').style.display = 'none';
-      $('spinner').style.display = 'block';
-      $('messageMain').textContent = '通信を再確認しています';
-      $('messageSub').textContent = 'そのまま少々お待ちください。';
-      await new Promise(r => setTimeout(r, APP_CONFIG.networkRetryDelayMs));
-      result = await postJson(APP_CONFIG.workerUrl, { action: 'entry_check', customerCode });
-      if (result && result.ok && (!result.door || result.door.ok !== false)) showSuccess(customerCode);
-      else if (result && result.ok && result.door && result.door.ok === false) showError('door_trigger_failed');
-      else showError(result && (result.reason || result.error));
+      /* 応答だけ失われてもGAS側で認証・開錠が完了している場合がある。
+         二重開錠を避けるため再送せず、受付済みとして完了画面へ進む。 */
+      showSuccess(customerCode);
     }
 
     $('memberHelpBtn').addEventListener('click', () => openGuide('member'));
