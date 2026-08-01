@@ -446,10 +446,12 @@
       pointGasUrl: 'https://script.google.com/macros/s/AKfycbwWdVJo6yC6RL3IjJcjueePaIpyo-H7Mh5TGUSqvYEMyZk3Lup8Hcf-JZgsXa-fQB85SA/exec',
       audio: {
         bgm: 'https://wce-06.github.io/liff-entry/audio/bgm.mp3',
-        welcome: '',
-        memberHelp: '',
+        welcome: 'assets/audio/top.mp3',
+        memberHelp1: 'assets/audio/member-guide-1.mp3',
+        memberHelp2: 'assets/audio/member-guide-2.mp3',
+        memberHelp3: 'assets/audio/member-guide-3.mp3',
         firstVisit: '',
-        scanning: 'https://wce-06.github.io/liff-entry/audio/entrance.mp3',
+        scanning: 'assets/audio/authenticating.mp3',
         success: '',
         retry: ''
       },
@@ -484,11 +486,11 @@
         title: '会員証の表示方法',
         text: 'スマートフォンで会員証を開き、表示されたバーコードを右側のリーダーへかざしてください。',
         avatar: 'assets/avatar-female-tablet.png',
-        audio: 'memberHelp',
+        audio: 'memberHelp1',
         steps: [
-          ['1', '公式LINEを開く', 'トーク画面下部の「通行許可証」をタップします', { image: 'assets/guide-member-1.jpg', size: 'contain', position: 'center' }],
-          ['2', '会員証を表示', '通行許可証・住民登録証のバーコードを表示します', { image: 'assets/guide-member-2.jpg', size: 'contain', position: 'center' }],
-          ['3', 'バーコードをかざす', 'この画面のまま、右側のリーダーへかざしてください。読み取り後、自動で認証を開始します', { image: 'assets/guide-member-3.jpg', size: 'contain', position: 'center' }]
+          ['1', '公式LINEを開く', 'トーク画面下部の「通行許可証」をタップします', { image: 'assets/guide-member-1.jpg', size: 'contain', position: 'center', audio: 'memberHelp1' }],
+          ['2', '会員証を表示', '通行許可証・住民登録証のバーコードを表示します', { image: 'assets/guide-member-2.jpg', size: 'contain', position: 'center', audio: 'memberHelp2' }],
+          ['3', 'バーコードをかざす', 'この画面のまま、右側のリーダーへかざしてください。読み取り後、自動で認証を開始します', { image: 'assets/guide-member-3.jpg', size: 'contain', position: 'center', audio: 'memberHelp3' }]
         ]
       },
       first: {
@@ -497,7 +499,7 @@
         avatar: 'assets/avatar-male-tablet-v2.png',
         audio: 'firstVisit',
         steps: [
-          ['1', '公式LINEを友だち追加', '画面のQRコードをスマートフォンで読み取ります', { image: 'assets/guide-first-1.jpg', size: 'contain', position: 'center' }],
+          ['1', '公式LINEを友だち追加', '画面の二次元バーコードをスマートフォンで読み取ります', { image: 'assets/guide-first-1.jpg', size: 'contain', position: 'center' }],
           ['2', '「同意する」をタップ', 'LINEミニアプリの確認画面で同意します', { image: 'assets/guide-first-2.jpg', size: 'contain', position: 'center' }],
           ['3', '「許可する」をタップ', 'プロフィール情報の利用を許可します', { image: 'assets/guide-first-3.jpg', size: 'contain', position: 'center' }],
           ['4', 'お客さま情報を入力', '画面の案内に沿って必要事項を入力します', { image: 'assets/guide-first-4.jpg', size: 'contain', position: 'center' }],
@@ -605,6 +607,7 @@
       visualEl.style.backgroundSize = visual ? visual.size : 'cover';
       visualEl.style.backgroundPosition = visual ? visual.position : 'center';
       visualEl.setAttribute('aria-label', visual ? `${step[1]}の操作画面` : '');
+      $('guideReplayBtn').dataset.audioKey = visual && visual.audio ? visual.audio : guide.audio;
       $('guideProgressLabel').textContent = `ステップ ${guideStepIndex + 1} / ${total}`;
       $('guideProgressPercent').textContent = `${percent}%`;
       $('guideProgressFill').style.width = `${percent}%`;
@@ -618,10 +621,9 @@
       guideStepIndex = 0;
       $('guideTitle').textContent = guide.title;
       $('guideAvatar').src = guide.avatar;
-      $('guideReplayBtn').dataset.audioKey = guide.audio;
       renderGuideStep();
       showScreen('guideScreen');
-      playGuide(guide.audio);
+      playGuide($('guideReplayBtn').dataset.audioKey);
     }
 
     function moveGuideStep(delta) {
@@ -634,6 +636,7 @@
       }
       guideStepIndex = Math.max(0, nextIndex);
       renderGuideStep();
+      playGuide($('guideReplayBtn').dataset.audioKey);
     }
 
     function startProgress() {
