@@ -816,6 +816,7 @@
       if (reason === 'customer_not_found') return ['会員情報を確認できませんでした', '会員登録または会員証の表示をご確認ください。'];
       if (reason === 'rank_not_allowed') return ['入店資格を確認できませんでした', '会員情報をご確認のうえ、もう一度お試しください。'];
       if (reason === 'door_trigger_failed') return ['ドアの開錠に失敗しました', '通信状態を確認して、もう一度お試しください。'];
+      if (['server_error', 'configuration_error', 'token_error'].includes(reason)) return ['ただいま認証サービスを確認しています', '会員証の問題ではありません。少し時間をあけて、もう一度お試しください。'];
       if (['network_error', 'invalid_json', 'request_timeout'].includes(reason) || String(reason).startsWith('http_')) {
         return ['通信に失敗しました', '少し時間をあけて、もう一度お試しください。'];
       }
