@@ -6,8 +6,6 @@
   <title>COMPASSION WORLD 本館 チェックイン</title>
   <link rel="preload" as="image" href="assets/avatar-female-tablet.png">
   <link rel="preload" as="image" href="assets/avatar-male-tablet-v2.png">
-  <link rel="preload" as="image" href="assets/guide-member-source.jpg">
-  <link rel="preload" as="image" href="assets/guide-first-source.jpg">
   <style>
     :root {
       --viewport-height: 100vh;
@@ -354,6 +352,22 @@
     @media (prefers-reduced-motion: reduce) {
       .avatar-stage, .avatar-stage .avatar, #guideAvatar, .speech { animation: none !important; }
     }
+
+    .diagnostics-panel {
+      display: none;
+      position: fixed;
+      inset: 12px;
+      z-index: 1000;
+      overflow: auto;
+      padding: 18px;
+      border: 2px solid #6f9565;
+      border-radius: 16px;
+      background: rgba(255, 253, 248, .98);
+      color: #4f3b2d;
+      font: 14px/1.55 ui-monospace, SFMono-Regular, Menlo, monospace;
+      white-space: pre-wrap;
+    }
+    .diagnostics-panel.active { display: block; }
   </style>
 </head>
 <body>
@@ -438,6 +452,7 @@
       <button id="soundBtn" class="sound-btn" type="button">🔊 音声を有効にする</button>
     </footer>
   </main>
+  <pre id="diagnosticsPanel" class="diagnostics-panel" aria-label="端末診断情報"></pre>
 
   <script>
     /* URLを書き換えるだけで音声・アバターを交換できます。空文字なら音声は再生しません。 */
@@ -461,6 +476,8 @@
         guideBase: 1.0
       },
       welcomeRepeatDelayMs: 10000,
+      barcodeQuietDelayMs: 1000,
+      barcodeEnterDelayMs: 500,
       entryRequestDelayMs: 2000,
       resetAfterSuccessMs: 20000,
       resetAfterErrorMs: 10000,
@@ -485,6 +502,80 @@
     let lastSubmittedAt = 0;
     let activeGuideType = '';
     let guideStepIndex = 0;
+
+    const DIAGNOSTIC_LOG_KEY = 'compassion-entry-diagnostics-v1';
+    const DIAGNOSTIC_SESSION_KEY = 'compassion-entry-session-v1';
+    let diagnosticSession = null;
+
+    function readDiagnosticLog() {
+      try { return JSON.parse(localStorage.getItem(DIAGNOSTIC_LOG_KEY) || '[]'); }
+      catch (_) { return []; }
+    }
+
+    function recordDiagnostic(type, detail = {}) {
+      try {
+        const log = readDiagnosticLog();
+        log.push({ at: new Date().toISOString(), type, detail });
+        localStorage.setItem(DIAGNOSTIC_LOG_KEY, JSON.stringify(log.slice(-30)));
+      } catch (_) {}
+      renderDiagnostics();
+    }
+
+    function renderDiagnostics() {
+      const panel = $('diagnosticsPanel');
+      if (!panel || !new URLSearchParams(location.search).has('diagnostics')) return;
+      const log = readDiagnosticLog();
+      const recent = log.slice(-12);
+      const appError = recent.some(item => item.type === 'javascript_error' || item.type === 'promise_error');
+      const interrupted = recent.some(item => item.type === 'previous_session_interrupted');
+      let verdict = '現在、異常終了の記録はありません。';
+      if (appError) verdict = 'アプリ側のJavaScriptエラーが記録されています。';
+      else if (interrupted) verdict = 'JavaScriptエラーなしで前回の動作が中断されました。端末・OS・ブラウザ側で終了した可能性が高い状態です。';
+      panel.classList.add('active');
+      panel.textContent = [
+        'COMPASSION WORLD 端末診断',
+        '',
+        `判定: ${verdict}`,
+        `画面: ${window.innerWidth} x ${window.innerHeight}`,
+        `端末メモリ目安: ${navigator.deviceMemory || '取得不可'} GB`,
+        `ブラウザ: ${navigator.userAgent}`,
+        '',
+        '直近の記録:',
+        JSON.stringify(recent, null, 2),
+        '',
+        '通常画面へ戻る場合はURL末尾の ?diagnostics=1 を削除してください。'
+      ].join('\n');
+    }
+
+    function startDiagnostics() {
+      try {
+        const previous = JSON.parse(localStorage.getItem(DIAGNOSTIC_SESSION_KEY) || 'null');
+        if (previous && !previous.clean && Date.now() - previous.heartbeat < 10 * 60 * 1000) {
+          recordDiagnostic('previous_session_interrupted', { lastHeartbeat: previous.heartbeat });
+        }
+        diagnosticSession = { id: `${Date.now()}-${Math.random()}`, clean: false, heartbeat: Date.now() };
+        localStorage.setItem(DIAGNOSTIC_SESSION_KEY, JSON.stringify(diagnosticSession));
+        setInterval(() => {
+          if (!diagnosticSession) return;
+          diagnosticSession.heartbeat = Date.now();
+          localStorage.setItem(DIAGNOSTIC_SESSION_KEY, JSON.stringify(diagnosticSession));
+        }, 5000);
+      } catch (_) {}
+      renderDiagnostics();
+    }
+
+    window.addEventListener('error', event => {
+      recordDiagnostic('javascript_error', { message: event.message, file: event.filename, line: event.lineno });
+    });
+    window.addEventListener('unhandledrejection', event => {
+      recordDiagnostic('promise_error', { message: String(event.reason && event.reason.message || event.reason || 'unknown') });
+    });
+    window.addEventListener('pagehide', () => {
+      if (!diagnosticSession) return;
+      diagnosticSession.clean = true;
+      diagnosticSession.heartbeat = Date.now();
+      try { localStorage.setItem(DIAGNOSTIC_SESSION_KEY, JSON.stringify(diagnosticSession)); } catch (_) {}
+    });
 
     const GUIDES = {
       member: {
@@ -806,11 +897,19 @@
           const scannedCode = codeInput.value;
           codeInput.value = '';
           submitCode(scannedCode);
-        }, 180);
+        }, APP_CONFIG.barcodeQuietDelayMs);
       }
     });
     codeInput.addEventListener('keydown', event => {
-      if (event.key === 'Enter') { event.preventDefault(); submitCode(codeInput.value); codeInput.value = ''; }
+      if (event.key === 'Enter') {
+        event.preventDefault();
+        clearTimeout(scanInputTimer);
+        scanInputTimer = setTimeout(() => {
+          const scannedCode = codeInput.value;
+          codeInput.value = '';
+          submitCode(scannedCode);
+        }, APP_CONFIG.barcodeEnterDelayMs);
+      }
     });
     function isMemberScanStep() {
       return $('guideScreen').classList.contains('active') &&
@@ -830,7 +929,8 @@
       if (event.key === 'Enter') {
         event.preventDefault();
         event.stopPropagation();
-        finishGuideScan();
+        clearTimeout(guideScanTimer);
+        guideScanTimer = setTimeout(finishGuideScan, APP_CONFIG.barcodeEnterDelayMs);
         return;
       }
       if (event.key.length !== 1) return;
@@ -838,7 +938,7 @@
       event.stopPropagation();
       guideScanBuffer += event.key;
       clearTimeout(guideScanTimer);
-      guideScanTimer = setTimeout(finishGuideScan, 180);
+      guideScanTimer = setTimeout(finishGuideScan, APP_CONFIG.barcodeQuietDelayMs);
     }, true);
     function updateViewportHeight() {
       document.documentElement.style.setProperty('--viewport-height', `${window.innerHeight}px`);
@@ -847,7 +947,8 @@
     window.addEventListener('resize', updateViewportHeight);
     window.addEventListener('orientationchange', updateViewportHeight);
     setInterval(updateScheduledVolumes, 60000);
-    window.addEventListener('load', () => { updateViewportHeight(); focusScanner(); });
+    startDiagnostics();
+    window.addEventListener('load', () => { updateViewportHeight(); focusScanner(); renderDiagnostics(); });
     window.addEventListener('pageshow', () => { focusScanner(true); });
     document.addEventListener('visibilitychange', () => {
       if (!document.hidden) focusScanner(true);
