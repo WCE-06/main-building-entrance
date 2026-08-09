@@ -622,7 +622,11 @@
     }
 
     function normalizeCode(value) {
-      return String(value || '').trim().replace(/[\r\n\s]+/g, '').toUpperCase();
+      return String(value || '')
+        .normalize('NFKC')
+        .trim()
+        .replace(/[\r\n\s]+/g, '')
+        .toUpperCase();
     }
 
     function getMasterVolume(date = new Date()) {
