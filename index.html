@@ -188,7 +188,65 @@
     .spinner { display: none; width: 58px; height: 58px; margin: 18px auto; border: 6px solid #e4d8c7; border-top-color: var(--green); border-radius: 50%; animation: spin .85s linear infinite; }
     @keyframes spin { to { transform: rotate(360deg); } }
 
-    .entry-box { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 10px; }
+    .terminal-kicker {
+      width: fit-content;
+      margin: 0 auto -8px;
+      padding: 6px 14px;
+      border-radius: 999px;
+      color: var(--green-dark);
+      background: var(--green-soft);
+      font-size: 14px;
+      font-weight: 800;
+      letter-spacing: .08em;
+    }
+    .scanner-callout {
+      min-height: 96px;
+      padding: 14px 18px;
+      border: 3px solid var(--green);
+      border-radius: 20px;
+      background: linear-gradient(135deg, #fff 0%, #edf5e9 100%);
+      box-shadow: 0 10px 24px rgba(79,113,72,.15);
+      display: grid;
+      grid-template-columns: 66px minmax(0, 1fr);
+      gap: 16px;
+      align-items: center;
+    }
+    .scanner-icon {
+      width: 62px;
+      height: 62px;
+      position: relative;
+      display: grid;
+      place-items: center;
+      border-radius: 16px;
+      color: #fff;
+      background: var(--green-dark);
+      font-size: 32px;
+      font-weight: 900;
+    }
+    .scanner-icon::after {
+      content: '';
+      width: 34px;
+      height: 3px;
+      position: absolute;
+      left: 14px;
+      top: 18px;
+      border-radius: 99px;
+      background: #dcebd6;
+      box-shadow: 0 9px 0 #dcebd6, 0 18px 0 #dcebd6;
+    }
+    .scanner-copy { min-width: 0; text-align: left; }
+    .scanner-copy strong { display: block; font-size: clamp(20px, 2.3vw, 28px); line-height: 1.35; }
+    .scanner-copy span { display: block; margin-top: 4px; color: var(--muted); font-size: 15px; font-weight: 700; }
+    .entry-box {
+      position: fixed;
+      left: -10000px;
+      top: 0;
+      width: 1px;
+      height: 1px;
+      overflow: hidden;
+      opacity: 0;
+      pointer-events: none;
+    }
     .code-input {
       width: 100%;
       min-width: 0;
@@ -319,11 +377,13 @@
       .home-actions { gap: 11px; justify-content: center; }
       .lead { font-size: 32px; line-height: 1.2; }
       .lead-sub { font-size: 14px; line-height: 1.4; }
-      .entry-box { gap: 9px; }
-      .code-input, .entry-submit { height: 54px; border-radius: 13px; }
-      .code-input { font-size: 17px; padding: 0 14px; }
-      .entry-submit { min-width: 118px; font-size: 15px; }
-      .choice { min-height: 86px; padding: 13px 18px; border-radius: 16px; }
+      .terminal-kicker { margin-bottom: -6px; padding: 5px 13px; font-size: 13px; }
+      .scanner-callout { min-height: 88px; padding: 10px 14px; grid-template-columns: 58px minmax(0, 1fr); gap: 13px; border-radius: 16px; }
+      .scanner-icon { width: 56px; height: 56px; border-radius: 13px; }
+      .scanner-icon::after { left: 12px; top: 16px; width: 32px; }
+      .scanner-copy strong { font-size: 23px; }
+      .scanner-copy span { font-size: 14px; }
+      .choice { min-height: 82px; padding: 11px 18px; border-radius: 16px; }
       .choice strong { font-size: 24px; }
       .choice span { margin-top: 4px; font-size: 14px; }
       .card { padding: 8px 14px; border-radius: 18px; }
@@ -386,9 +446,17 @@
         </div>
       </div>
       <div class="home-actions">
-        <h2 class="lead">ご来店ありがとうございます</h2>
-        <p class="lead-sub">会員証のバーコードは、右側のリーダーへかざしてください。</p>
-        <div class="entry-box">
+        <div class="terminal-kicker">COMPASSION WORLD 本館</div>
+        <h2 class="lead">入店受付端末</h2>
+        <p class="lead-sub">会員証を読み取ると、自動で入店受付を行います。</p>
+        <div class="scanner-callout" role="status" aria-label="会員証を右側のバーコードリーダーへかざしてください">
+          <div class="scanner-icon" aria-hidden="true"></div>
+          <div class="scanner-copy">
+            <strong>会員証を右側のリーダーへ</strong>
+            <span>バーコードをかざしてください。読み取り後は自動で進みます。</span>
+          </div>
+        </div>
+        <div class="entry-box" aria-hidden="true">
           <input id="codeInput" class="code-input" type="text" inputmode="none" lang="en" autocomplete="off" autocapitalize="characters" spellcheck="false" placeholder="会員コードを入力・スキャン">
           <button id="submitCodeBtn" class="entry-submit" type="button">入店確認</button>
         </div>
