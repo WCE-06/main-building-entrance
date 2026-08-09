@@ -915,6 +915,16 @@
       }, delay);
     }
 
+    window.receiveNativeBarcode = rawCode => {
+      clearTimeout(scanInputTimer);
+      clearTimeout(guideScanTimer);
+      guideScanBuffer = '';
+      const scannedCode = normalizeCode(rawCode);
+      if (scannedCode.length < 3) return;
+      codeInput.value = '';
+      submitCode(scannedCode);
+    };
+
     codeInput.addEventListener('beforeinput', event => {
       if (event.inputType === 'insertCompositionText') event.preventDefault();
     });
