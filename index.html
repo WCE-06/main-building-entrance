@@ -556,6 +556,7 @@
     const SCREENS = ['homeScreen', 'scanScreen', 'guideScreen'];
     const $ = id => document.getElementById(id);
     const codeInput = $('codeInput');
+    const isNativeKiosk = /COMPASSION-KIOSK\//.test(navigator.userAgent);
     let isSubmitting = false;
     let audioEnabled = false;
     let currentAudio = null;
@@ -683,6 +684,10 @@
       if (!$('homeScreen').classList.contains('active')) return;
       codeInput.disabled = false;
       codeInput.readOnly = false;
+      if (isNativeKiosk) {
+        codeInput.blur();
+        return;
+      }
       requestAnimationFrame(() => {
         try { codeInput.focus({ preventScroll: true }); } catch (_) { codeInput.focus(); }
         if (selectValue && codeInput.value) codeInput.select();
