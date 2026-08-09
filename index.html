@@ -389,7 +389,7 @@
         <h2 class="lead">ご来店ありがとうございます</h2>
         <p class="lead-sub">会員証のバーコードは、右側のリーダーへかざしてください。</p>
         <div class="entry-box">
-          <input id="codeInput" class="code-input" type="text" inputmode="text" autocomplete="off" autocapitalize="characters" spellcheck="false" placeholder="会員コードを入力・スキャン">
+          <input id="codeInput" class="code-input" type="text" inputmode="none" lang="en" autocomplete="off" autocapitalize="characters" spellcheck="false" placeholder="会員コードを入力・スキャン">
           <button id="submitCodeBtn" class="entry-submit" type="button">入店確認</button>
         </div>
         <button id="memberHelpBtn" class="choice secondary" type="button">
@@ -627,6 +627,15 @@
         .trim()
         .replace(/[\r\n\s]+/g, '')
         .toUpperCase();
+    }
+
+    function asciiFromPhysicalKey(event) {
+      const code = String(event.code || '');
+      if (/^Key[A-Z]$/.test(code)) return code.slice(3);
+      if (/^Digit[0-9]$/.test(code)) return code.slice(5);
+      if (/^Numpad[0-9]$/.test(code)) return code.slice(6);
+      if (code === 'Minus' || code === 'NumpadSubtract') return '-';
+      return '';
     }
 
     function getMasterVolume(date = new Date()) {
@@ -895,28 +904,34 @@
       submitCode(codeInput.value);
       codeInput.value = '';
     });
+    function scheduleHomeScan(delay = APP_CONFIG.barcodeQuietDelayMs) {
+      clearTimeout(scanInputTimer);
+      if (codeInput.value.length < 3) return;
+      scanInputTimer = setTimeout(() => {
+        const scannedCode = codeInput.value;
+        codeInput.value = '';
+        submitCode(scannedCode);
+      }, delay);
+    }
+
     codeInput.addEventListener('input', () => {
       codeInput.value = normalizeCode(codeInput.value);
-      clearTimeout(scanInputTimer);
-      if (codeInput.value.length >= 3) {
-        scanInputTimer = setTimeout(() => {
-          const scannedCode = codeInput.value;
-          codeInput.value = '';
-          submitCode(scannedCode);
-        }, APP_CONFIG.barcodeQuietDelayMs);
-      }
+      scheduleHomeScan();
     });
     codeInput.addEventListener('keydown', event => {
-      if (event.key === 'Enter') {
+      if (event.key === 'Enter' || event.code === 'Enter' || event.code === 'NumpadEnter') {
         event.preventDefault();
-        clearTimeout(scanInputTimer);
-        scanInputTimer = setTimeout(() => {
-          const scannedCode = codeInput.value;
-          codeInput.value = '';
-          submitCode(scannedCode);
-        }, APP_CONFIG.barcodeEnterDelayMs);
+        event.stopPropagation();
+        scheduleHomeScan(APP_CONFIG.barcodeEnterDelayMs);
+        return;
       }
-    });
+      const ascii = asciiFromPhysicalKey(event);
+      if (!ascii) return;
+      event.preventDefault();
+      event.stopPropagation();
+      codeInput.value = normalizeCode(codeInput.value + ascii);
+      scheduleHomeScan();
+    }, true);
     function isMemberScanStep() {
       return $('guideScreen').classList.contains('active') &&
         activeGuideType === 'member' &&
@@ -939,10 +954,11 @@
         guideScanTimer = setTimeout(finishGuideScan, APP_CONFIG.barcodeEnterDelayMs);
         return;
       }
-      if (event.key.length !== 1) return;
+      const ascii = asciiFromPhysicalKey(event);
+      if (!ascii && event.key.length !== 1) return;
       event.preventDefault();
       event.stopPropagation();
-      guideScanBuffer += event.key;
+      guideScanBuffer += ascii || event.key;
       clearTimeout(guideScanTimer);
       guideScanTimer = setTimeout(finishGuideScan, APP_CONFIG.barcodeQuietDelayMs);
     }, true);
@@ -954,7 +970,15 @@
     window.addEventListener('orientationchange', updateViewportHeight);
     setInterval(updateScheduledVolumes, 60000);
     startDiagnostics();
-    window.addEventListener('load', () => { updateViewportHeight(); focusScanner(); renderDiagnostics(); });
+    window.addEventListener('load', () => {
+      updateViewportHeight();
+      focusScanner();
+      renderDiagnostics();
+      enableAudio();
+    });
+    document.addEventListener('pointerdown', () => {
+      if (!bgmAudio || bgmAudio.paused) enableAudio();
+    }, { once: true });
     window.addEventListener('pageshow', () => { focusScanner(true); });
     document.addEventListener('visibilitychange', () => {
       if (!document.hidden) focusScanner(true);
