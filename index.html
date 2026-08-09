@@ -626,7 +626,8 @@
         .normalize('NFKC')
         .trim()
         .replace(/[\r\n\s]+/g, '')
-        .toUpperCase();
+        .toUpperCase()
+        .replace(/[^0-9A-Z-]/g, '');
     }
 
     function asciiFromPhysicalKey(event) {
@@ -914,6 +915,16 @@
       }, delay);
     }
 
+    codeInput.addEventListener('beforeinput', event => {
+      if (event.inputType === 'insertCompositionText') event.preventDefault();
+    });
+    codeInput.addEventListener('compositionstart', () => {
+      codeInput.value = normalizeCode(codeInput.value);
+    });
+    codeInput.addEventListener('compositionend', () => {
+      codeInput.value = normalizeCode(codeInput.value);
+      scheduleHomeScan();
+    });
     codeInput.addEventListener('input', () => {
       codeInput.value = normalizeCode(codeInput.value);
       scheduleHomeScan();
@@ -972,7 +983,7 @@
     startDiagnostics();
     window.addEventListener('load', () => {
       updateViewportHeight();
-      focusScanner();
+      resetHome();
       renderDiagnostics();
       enableAudio();
     });
