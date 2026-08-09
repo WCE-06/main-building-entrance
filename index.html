@@ -200,14 +200,13 @@
       letter-spacing: .08em;
     }
     .scanner-callout {
-      min-height: 96px;
-      padding: 14px 18px;
-      border: 3px solid var(--green);
-      border-radius: 20px;
-      background: linear-gradient(135deg, #fff 0%, #edf5e9 100%);
-      box-shadow: 0 10px 24px rgba(79,113,72,.15);
+      min-height: 108px;
+      padding: 14px 10px;
+      border-top: 3px solid var(--green);
+      border-bottom: 3px solid var(--green);
+      background: transparent;
       display: grid;
-      grid-template-columns: 66px minmax(0, 1fr);
+      grid-template-columns: 66px minmax(0, 1fr) auto;
       gap: 16px;
       align-items: center;
     }
@@ -235,8 +234,19 @@
       box-shadow: 0 9px 0 #dcebd6, 0 18px 0 #dcebd6;
     }
     .scanner-copy { min-width: 0; text-align: left; }
-    .scanner-copy strong { display: block; font-size: clamp(20px, 2.3vw, 28px); line-height: 1.35; }
-    .scanner-copy span { display: block; margin-top: 4px; color: var(--muted); font-size: 15px; font-weight: 700; }
+    .scanner-copy strong { display: block; font-size: clamp(24px, 2.8vw, 34px); line-height: 1.3; }
+    .scanner-copy span { display: block; margin-top: 5px; color: var(--muted); font-size: 15px; font-weight: 700; }
+    .scanner-direction {
+      padding-left: 14px;
+      border-left: 2px solid rgba(102,138,91,.30);
+      color: var(--green-dark);
+      font-size: clamp(15px, 1.7vw, 21px);
+      font-weight: 900;
+      line-height: 1.35;
+      text-align: center;
+      white-space: nowrap;
+    }
+    .scanner-direction b { display: block; font-size: 30px; line-height: 1; }
     .entry-box {
       position: fixed;
       left: -10000px;
@@ -378,11 +388,13 @@
       .lead { font-size: 32px; line-height: 1.2; }
       .lead-sub { font-size: 14px; line-height: 1.4; }
       .terminal-kicker { margin-bottom: -6px; padding: 5px 13px; font-size: 13px; }
-      .scanner-callout { min-height: 88px; padding: 10px 14px; grid-template-columns: 58px minmax(0, 1fr); gap: 13px; border-radius: 16px; }
+      .scanner-callout { min-height: 96px; padding: 9px 6px; grid-template-columns: 58px minmax(0, 1fr) 126px; gap: 12px; }
       .scanner-icon { width: 56px; height: 56px; border-radius: 13px; }
       .scanner-icon::after { left: 12px; top: 16px; width: 32px; }
-      .scanner-copy strong { font-size: 23px; }
+      .scanner-copy strong { font-size: 27px; }
       .scanner-copy span { font-size: 14px; }
+      .scanner-direction { padding-left: 10px; font-size: 16px; }
+      .scanner-direction b { font-size: 28px; }
       .choice { min-height: 82px; padding: 11px 18px; border-radius: 16px; }
       .choice strong { font-size: 24px; }
       .choice span { margin-top: 4px; font-size: 14px; }
@@ -452,9 +464,10 @@
         <div class="scanner-callout" role="status" aria-label="会員証を右側のバーコードリーダーへかざしてください">
           <div class="scanner-icon" aria-hidden="true"></div>
           <div class="scanner-copy">
-            <strong>会員証を右側のリーダーへ</strong>
-            <span>バーコードをかざしてください。読み取り後は自動で進みます。</span>
+            <strong>会員証を右側の<br>バーコードリーダーへ</strong>
+            <span>読み取り後は自動で入店受付へ進みます。</span>
           </div>
+          <div class="scanner-direction">リーダーはこちら<b>→</b></div>
         </div>
         <div class="entry-box" aria-hidden="true">
           <input id="codeInput" class="code-input" type="text" inputmode="none" lang="en" autocomplete="off" autocapitalize="characters" spellcheck="false" placeholder="会員コードを入力・スキャン">
