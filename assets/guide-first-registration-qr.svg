@@ -1,0 +1,8 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="800" height="520" viewBox="0 0 800 520">
+  <rect width="800" height="520" rx="34" fill="#fffdf8"/>
+  <rect x="54" y="38" width="692" height="444" rx="30" fill="#f7f0e3" stroke="#668a5b" stroke-width="7"/>
+  <text x="400" y="91" text-anchor="middle" font-family="sans-serif" font-size="28" font-weight="700" fill="#5b4432">スマートフォンで読み取ってください</text>
+  <rect x="242" y="112" width="316" height="316" rx="20" fill="#fff"/>
+  <image x="260" y="130" width="280" height="280" href="guide-first-new-qr-code.svg"/>
+  <text x="400" y="459" text-anchor="middle" font-family="sans-serif" font-size="19" fill="#806e5e">COMPASSION WORLD 新規会員登録</text>
+</svg>
