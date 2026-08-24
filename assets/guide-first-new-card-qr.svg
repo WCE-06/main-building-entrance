@@ -1,0 +1,16 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="800" height="520" viewBox="0 0 800 520">
+  <rect width="800" height="520" rx="34" fill="#fffdf8"/>
+  <rect x="72" y="32" width="430" height="456" rx="42" fill="#4f443c"/>
+  <rect x="88" y="49" width="398" height="422" rx="29" fill="#f7f0e3"/>
+  <rect x="103" y="67" width="368" height="386" rx="24" fill="#fffdf8" stroke="#668a5b" stroke-width="5"/>
+  <text x="287" y="111" text-anchor="middle" font-family="sans-serif" font-size="22" font-weight="700" fill="#5b4432">COMPASSION WORLD</text>
+  <text x="287" y="143" text-anchor="middle" font-family="sans-serif" font-size="16" fill="#806e5e">POINT CARD</text>
+  <rect x="179" y="160" width="216" height="216" rx="14" fill="#fff"/>
+  <image x="189" y="170" width="196" height="196" href="guide-first-new-member-qr.svg"/>
+  <text x="287" y="408" text-anchor="middle" font-family="monospace" font-size="23" font-weight="700" fill="#5b4432">A7K4P9X2M6</text>
+  <path d="M530 258h150" stroke="#668a5b" stroke-width="30" stroke-linecap="round"/>
+  <path d="M641 205l59 53-59 53" fill="none" stroke="#668a5b" stroke-width="30" stroke-linecap="round" stroke-linejoin="round"/>
+  <rect x="699" y="101" width="72" height="318" rx="20" fill="#4f443c"/>
+  <rect x="711" y="140" width="48" height="112" rx="8" fill="#dcebd8"/>
+  <text x="624" y="365" text-anchor="middle" font-family="sans-serif" font-size="19" font-weight="700" fill="#5b4432">右側のリーダーへ</text>
+</svg>
