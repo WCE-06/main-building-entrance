@@ -553,7 +553,6 @@
     /* URLを書き換えるだけで音声・アバターを交換できます。空文字なら音声は再生しません。 */
     const APP_CONFIG = {
       workerUrl: 'https://script.google.com/macros/s/AKfycbx7NeJbl472i_GmHpid5E5sUqo-eyGwo9TZ1UhZ45qaoeTYlKCzl6qCl9CI_wnNSvNUew/exec',
-      pointGasUrl: 'https://script.google.com/macros/s/AKfycbwWdVJo6yC6RL3IjJcjueePaIpyo-H7Mh5TGUSqvYEMyZk3Lup8Hcf-JZgsXa-fQB85SA/exec',
       audio: {
         bgm: 'https://wce-06.github.io/liff-entry/audio/bgm.mp3',
         welcome: 'assets/audio/top.mp3',
@@ -961,7 +960,6 @@
       $('messageSub').textContent = 'お足元に気をつけてお進みください。';
       $('messageSub').classList.remove('error-note');
       playGuide('success');
-      postJson(APP_CONFIG.pointGasUrl, { action: 'checkin_point', customerCode, source: 'door_html' }).catch(() => {});
       scheduleReset(APP_CONFIG.resetAfterSuccessMs);
     }
 
