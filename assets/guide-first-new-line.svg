@@ -1,0 +1,11 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="800" height="520" viewBox="0 0 800 520">
+  <rect width="800" height="520" rx="34" fill="#fffdf8"/>
+  <rect x="232" y="22" width="336" height="476" rx="38" fill="#f3eadc" stroke="#6d8f62" stroke-width="8"/>
+  <circle cx="400" cy="128" r="58" fill="#06c755"/>
+  <path d="M357 121c0-29 28-50 63-50s63 21 63 50-28 50-63 50c-7 0-14-1-20-3l-25 15 7-24c-15-9-25-22-25-38z" fill="#fff"/>
+  <text x="400" y="235" text-anchor="middle" font-family="sans-serif" font-size="30" font-weight="700" fill="#5b4432">LINEでログイン</text>
+  <text x="400" y="280" text-anchor="middle" font-family="sans-serif" font-size="22" fill="#806e5e">COMPASSION WORLD</text>
+  <rect x="278" y="326" width="244" height="68" rx="16" fill="#06c755"/>
+  <text x="400" y="370" text-anchor="middle" font-family="sans-serif" font-size="24" font-weight="700" fill="#fff">友だち追加して進む</text>
+  <text x="400" y="447" text-anchor="middle" font-family="sans-serif" font-size="18" fill="#806e5e">画面の案内に沿って操作してください</text>
+</svg>
