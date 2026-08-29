@@ -552,6 +552,7 @@
   <script>
     /* URLを書き換えるだけで音声・アバターを交換できます。空文字なら音声は再生しません。 */
     const APP_CONFIG = {
+      appVersion: 'entry-web-2026.08.29-shadow-v1',
       workerUrl: 'https://script.google.com/macros/s/AKfycbx7NeJbl472i_GmHpid5E5sUqo-eyGwo9TZ1UhZ45qaoeTYlKCzl6qCl9CI_wnNSvNUew/exec',
       audio: {
         bgm: 'https://wce-06.github.io/liff-entry/audio/bgm.mp3',
@@ -927,6 +928,7 @@
 
     function errorMessage(reason) {
       if (reason === 'customer_not_found') return ['会員情報を確認できませんでした', '会員登録または会員証の表示をご確認ください。'];
+      if (reason === 'invalid_member_code') return ['会員証を確認できませんでした', '会員証のコードをもう一度スキャンしてください。'];
       if (reason === 'rank_not_allowed') return ['入店資格を確認できませんでした', '会員情報をご確認のうえ、もう一度お試しください。'];
       if (reason === 'door_trigger_failed') return ['ドアの開錠に失敗しました', '通信状態を確認して、もう一度お試しください。'];
       if (['server_error', 'configuration_error', 'token_error'].includes(reason)) return ['ただいま認証サービスを確認しています', '会員証の問題ではありません。少し時間をあけて、もう一度お試しください。'];
@@ -963,9 +965,15 @@
       scheduleReset(APP_CONFIG.resetAfterSuccessMs);
     }
 
+    function createRequestId(){if(window.crypto&&typeof window.crypto.randomUUID==='function'){return window.crypto.randomUUID();}return 'entry-'+Date.now().toString(36)+'-'+Math.random().toString(36).slice(2,12);}
+
+    function sendShadowComparison(requestId,customerCode,result){if(!result||isCommunicationError(result))return;const legacyAllowed=Boolean(result.ok||(result.isMember&&result.reason==='door_trigger_failed'));postJson(APP_CONFIG.workerUrl,{action:'shadow_compare',requestId:requestId,customerCode:customerCode,legacyAllowed:legacyAllowed,legacyReason:result.reason||result.error||'',legacyRank:result.rank||'',appVersion:APP_CONFIG.appVersion}).catch(()=>{});}
+
     async function submitCode(raw) {
       const customerCode = normalizeCode(raw);
       if (!customerCode || isSubmitting) return;
+      if (!/^[0-9A-Z]{10}$/.test(customerCode)) { showError('invalid_member_code'); return; }
+      const requestId = createRequestId();
       const now = Date.now();
       if (customerCode === lastCode && now - lastSubmittedAt < 2000) return;
       lastCode = customerCode;
@@ -980,7 +988,8 @@
 
       await new Promise(r => setTimeout(r, APP_CONFIG.entryRequestDelayMs));
 
-      let result = await postJson(APP_CONFIG.workerUrl, { action: 'entry_check', customerCode });
+      let result = await postJson(APP_CONFIG.workerUrl, { action: 'entry_check', customerCode, requestId });
+      sendShadowComparison(requestId, customerCode, result);
       if (result && result.ok) { showSuccess(customerCode); return; }
       if (result && result.isMember && result.reason === 'door_trigger_failed') { showSuccess(customerCode); return; }
       if (!isCommunicationError(result)) { showError(result.reason || result.error); return; }
