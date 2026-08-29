@@ -552,7 +552,7 @@
   <script>
     /* URLを書き換えるだけで音声・アバターを交換できます。空文字なら音声は再生しません。 */
     const APP_CONFIG = {
-      appVersion: 'entry-web-2026.08.29-shadow-v1',
+      appVersion: 'entry-web-2026.08.29-shadow-v2',
       workerUrl: 'https://script.google.com/macros/s/AKfycbx7NeJbl472i_GmHpid5E5sUqo-eyGwo9TZ1UhZ45qaoeTYlKCzl6qCl9CI_wnNSvNUew/exec',
       audio: {
         bgm: 'https://wce-06.github.io/liff-entry/audio/bgm.mp3',
@@ -965,7 +965,16 @@
       scheduleReset(APP_CONFIG.resetAfterSuccessMs);
     }
 
-    function createRequestId(){if(window.crypto&&typeof window.crypto.randomUUID==='function'){return window.crypto.randomUUID();}return 'entry-'+Date.now().toString(36)+'-'+Math.random().toString(36).slice(2,12);}
+    function createRequestId(){
+      if(window.crypto&&typeof window.crypto.randomUUID==='function')return window.crypto.randomUUID();
+      const bytes=new Uint8Array(16);
+      if(window.crypto&&typeof window.crypto.getRandomValues==='function')window.crypto.getRandomValues(bytes);
+      else for(let i=0;i<bytes.length;i++)bytes[i]=Math.floor(Math.random()*256);
+      bytes[6]=(bytes[6]&0x0f)|0x40;
+      bytes[8]=(bytes[8]&0x3f)|0x80;
+      const hex=Array.from(bytes,b=>b.toString(16).padStart(2,'0'));
+      return hex.slice(0,4).join('')+'-'+hex.slice(4,6).join('')+'-'+hex.slice(6,8).join('')+'-'+hex.slice(8,10).join('')+'-'+hex.slice(10).join('');
+    }
 
     function sendShadowComparison(requestId,customerCode,result){if(!result||isCommunicationError(result))return;const legacyAllowed=Boolean(result.ok||(result.isMember&&result.reason==='door_trigger_failed'));postJson(APP_CONFIG.workerUrl,{action:'shadow_compare',requestId:requestId,customerCode:customerCode,legacyAllowed:legacyAllowed,legacyReason:result.reason||result.error||'',legacyRank:result.rank||'',appVersion:APP_CONFIG.appVersion}).catch(()=>{});}
 
