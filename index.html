@@ -552,7 +552,7 @@
   <script>
     /* URLを書き換えるだけで音声・アバターを交換できます。空文字なら音声は再生しません。 */
     const APP_CONFIG = {
-      appVersion: 'entry-web-2026.08.29-shadow-v2',
+      appVersion: 'entry-web-2026.09.08-two-phase-entry-v1',
       workerUrl: 'https://script.google.com/macros/s/AKfycbx7NeJbl472i_GmHpid5E5sUqo-eyGwo9TZ1UhZ45qaoeTYlKCzl6qCl9CI_wnNSvNUew/exec',
       audio: {
         bgm: 'https://wce-06.github.io/liff-entry/audio/bgm.mp3',
@@ -874,7 +874,7 @@
       $('progressFill').style.width = '0%';
       $('progressNum').textContent = '0%';
       const timer = setInterval(() => {
-        percent = Math.min(percent + 1, 90);
+        percent = Math.min(percent + 1, 88);
         $('progressFill').style.width = `${percent}%`;
         $('progressNum').textContent = `${percent}%`;
       }, 80);
@@ -997,7 +997,19 @@
 
       await new Promise(r => setTimeout(r, APP_CONFIG.entryRequestDelayMs));
 
-      let result = await postJson(APP_CONFIG.workerUrl, { action: 'entry_check', customerCode, requestId });
+      const prepared = await postJson(APP_CONFIG.workerUrl, { action: 'entry_prepare', customerCode, requestId });
+      if (!prepared || !prepared.ok) {
+        showError((prepared && (prepared.reason || prepared.error)) || 'network_error');
+        return;
+      }
+
+      if (progressStopper) progressStopper(true);
+      progressStopper = null;
+      $('messageMain').textContent = '会員確認が完了しました';
+      $('messageSub').textContent = 'ゲートを開錠しています。少々お待ちください。';
+      await new Promise(r => setTimeout(r, 350));
+
+      let result = await postJson(APP_CONFIG.workerUrl, { action: 'entry_commit', customerCode, requestId });
       sendShadowComparison(requestId, customerCode, result);
       if (result && result.ok) { showSuccess(customerCode); return; }
       if (result && result.isMember && result.reason === 'door_trigger_failed') { showSuccess(customerCode); return; }
