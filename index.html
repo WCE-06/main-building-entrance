@@ -552,7 +552,7 @@
   <script>
     /* URLを書き換えるだけで音声・アバターを交換できます。空文字なら音声は再生しません。 */
     const APP_CONFIG = {
-      appVersion: 'entry-web-2026.09.08-two-phase-entry-v1',
+      appVersion: 'entry-web-2026.09.10-resumable-entry-v2',
       workerUrl: 'https://script.google.com/macros/s/AKfycbx7NeJbl472i_GmHpid5E5sUqo-eyGwo9TZ1UhZ45qaoeTYlKCzl6qCl9CI_wnNSvNUew/exec',
       audio: {
         bgm: 'https://wce-06.github.io/liff-entry/audio/bgm.mp3',
@@ -576,7 +576,9 @@
       entryRequestDelayMs: 2000,
       resetAfterSuccessMs: 20000,
       resetAfterErrorMs: 10000,
-      networkRetryDelayMs: 1000
+      networkRetryDelayMs: 1200,
+      prepareRetryCount: 3,
+      commitRetryCount: 4
     };
 
     const SCREENS = ['homeScreen', 'scanScreen', 'guideScreen'];
@@ -978,6 +980,34 @@
 
     function sendShadowComparison(requestId,customerCode,result){if(!result||isCommunicationError(result))return;const legacyAllowed=Boolean(result.ok||(result.isMember&&result.reason==='door_trigger_failed'));postJson(APP_CONFIG.workerUrl,{action:'shadow_compare',requestId:requestId,customerCode:customerCode,legacyAllowed:legacyAllowed,legacyReason:result.reason||result.error||'',legacyRank:result.rank||'',appVersion:APP_CONFIG.appVersion}).catch(()=>{});}
 
+    function showUncertain() {
+      if (progressStopper) progressStopper(false);
+      progressStopper = null;
+      $('progressShell').style.display = 'none';
+      $('spinner').style.display = 'none';
+      $('successMark').style.display = 'none';
+      $('messageMain').textContent = '開錠結果を確認できませんでした';
+      $('messageSub').textContent = 'ゲートが開いているかご確認ください。開いていない場合は、10秒ほど待ってからもう一度スキャンしてください。';
+      $('messageSub').classList.add('error-note');
+      playGuide('retry');
+      scheduleReset(APP_CONFIG.resetAfterErrorMs);
+    }
+
+    function wait(ms) {
+      return new Promise(resolve => setTimeout(resolve, ms));
+    }
+
+    async function postEntryActionWithRetry(action, customerCode, requestId, attempts) {
+      let result = null;
+      for (let attempt = 1; attempt <= attempts; attempt += 1) {
+        result = await postJson(APP_CONFIG.workerUrl, { action, customerCode, requestId });
+        const pending = result && result.reason === 'entry_commit_processing';
+        if (!isCommunicationError(result) && !pending) return result;
+        if (attempt < attempts) await wait(APP_CONFIG.networkRetryDelayMs * attempt);
+      }
+      return result;
+    }
+
     async function submitCode(raw) {
       const customerCode = normalizeCode(raw);
       if (!customerCode || isSubmitting) return;
@@ -995,9 +1025,11 @@
       playGuide('scanning');
       startProgress();
 
-      await new Promise(r => setTimeout(r, APP_CONFIG.entryRequestDelayMs));
+      await wait(APP_CONFIG.entryRequestDelayMs);
 
-      const prepared = await postJson(APP_CONFIG.workerUrl, { action: 'entry_prepare', customerCode, requestId });
+      const prepared = await postEntryActionWithRetry(
+        'entry_prepare', customerCode, requestId, APP_CONFIG.prepareRetryCount
+      );
       if (!prepared || !prepared.ok) {
         showError((prepared && (prepared.reason || prepared.error)) || 'network_error');
         return;
@@ -1007,17 +1039,19 @@
       progressStopper = null;
       $('messageMain').textContent = '会員確認が完了しました';
       $('messageSub').textContent = 'ゲートを開錠しています。少々お待ちください。';
-      await new Promise(r => setTimeout(r, 350));
+      await wait(350);
 
-      let result = await postJson(APP_CONFIG.workerUrl, { action: 'entry_commit', customerCode, requestId });
+      let result = await postEntryActionWithRetry(
+        'entry_commit', customerCode, requestId, APP_CONFIG.commitRetryCount
+      );
       sendShadowComparison(requestId, customerCode, result);
       if (result && result.ok) { showSuccess(customerCode); return; }
       if (result && result.isMember && result.reason === 'door_trigger_failed') { showSuccess(customerCode); return; }
       if (!isCommunicationError(result)) { showError(result.reason || result.error); return; }
 
-      /* 応答だけ失われてもGAS側で認証・開錠が完了している場合がある。
-         二重開錠を避けるため再送せず、受付済みとして完了画面へ進む。 */
-      showSuccess(customerCode);
+      /* 応答だけ失われても開錠済みの場合があるため自動再送はしない。
+         ただし未開錠の可能性もあるので、成功とは表示せず現物確認を促す。 */
+      showUncertain();
     }
 
     $('memberHelpBtn').addEventListener('click', () => openGuide('member'));
