@@ -561,7 +561,7 @@
   <script>
     /* URLを書き換えるだけで音声・アバターを交換できます。空文字なら音声は再生しません。 */
     const APP_CONFIG = {
-      appVersion: 'entry-web-2026.09.10-resumable-entry-v2',
+      appVersion: 'entry-web-2026.09.20-scanner-capture-v1',
       workerUrl: 'https://script.google.com/macros/s/AKfycbx7NeJbl472i_GmHpid5E5sUqo-eyGwo9TZ1UhZ45qaoeTYlKCzl6qCl9CI_wnNSvNUew/exec',
       audio: {
         bgm: 'https://wce-06.github.io/liff-entry/audio/bgm.mp3',
@@ -605,6 +605,8 @@
     let scanInputTimer = null;
     let guideScanTimer = null;
     let guideScanBuffer = '';
+    let documentScanTimer = null;
+    let documentScanBuffer = '';
     let lastCode = '';
     let lastSubmittedAt = 0;
     let activeGuideType = '';
@@ -747,6 +749,10 @@
       if (/^Numpad[0-9]$/.test(code)) return code.slice(6);
       if (code === 'Minus' || code === 'NumpadSubtract') return '-';
       return '';
+    }
+
+    function scannedCharacter(event) {
+      return asciiFromPhysicalKey(event) || (event.key && event.key.length === 1 ? event.key : '');
     }
 
     function getMasterVolume(date = new Date()) {
@@ -1092,6 +1098,7 @@
       guideScanBuffer = '';
       const scannedCode = normalizeCode(rawCode);
       if (scannedCode.length < 3) return;
+      recordDiagnostic('scanner_native_input', { length: scannedCode.length });
       codeInput.value = '';
       submitCode(scannedCode);
     };
@@ -1137,22 +1144,36 @@
       codeInput.value = scannedCode;
       submitCode(scannedCode);
     }
+    function isDocumentScanTarget() {
+      if ($('homeScreen').classList.contains('active')) return true;
+      return isMemberScanStep();
+    }
+    function finishDocumentScan() {
+      clearTimeout(documentScanTimer);
+      const scannedCode = normalizeCode(documentScanBuffer);
+      documentScanBuffer = '';
+      if (scannedCode.length < 3) return;
+      recordDiagnostic('scanner_document_input', { length: scannedCode.length });
+      codeInput.value = '';
+      submitCode(scannedCode);
+    }
     document.addEventListener('keydown', event => {
-      if (!isMemberScanStep() || event.ctrlKey || event.metaKey || event.altKey) return;
+      if (!isDocumentScanTarget() || event.ctrlKey || event.metaKey || event.altKey) return;
+      if (event.target === codeInput) return;
       if (event.key === 'Enter') {
         event.preventDefault();
         event.stopPropagation();
-        clearTimeout(guideScanTimer);
-        guideScanTimer = setTimeout(finishGuideScan, APP_CONFIG.barcodeEnterDelayMs);
+        clearTimeout(documentScanTimer);
+        documentScanTimer = setTimeout(finishDocumentScan, APP_CONFIG.barcodeEnterDelayMs);
         return;
       }
-      const ascii = asciiFromPhysicalKey(event);
-      if (!ascii && event.key.length !== 1) return;
+      const ascii = scannedCharacter(event);
+      if (!ascii) return;
       event.preventDefault();
       event.stopPropagation();
-      guideScanBuffer += ascii || event.key;
-      clearTimeout(guideScanTimer);
-      guideScanTimer = setTimeout(finishGuideScan, APP_CONFIG.barcodeQuietDelayMs);
+      documentScanBuffer += ascii;
+      clearTimeout(documentScanTimer);
+      documentScanTimer = setTimeout(finishDocumentScan, APP_CONFIG.barcodeQuietDelayMs);
     }, true);
     function updateViewportHeight() {
       document.documentElement.style.setProperty('--viewport-height', `${window.innerHeight}px`);
